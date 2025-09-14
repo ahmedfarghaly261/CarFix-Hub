@@ -4,6 +4,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
+// Create Express app
+const app = express();
+
 // Import routes
 const userRoutes = require('./routes/userRoutes');
 const carRoutes = require('./routes/carRoutes');
@@ -11,8 +14,7 @@ const repairRoutes = require('./routes/repairRoutes');
 const workshopRoutes = require('./routes/workshopRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 
-// Create Express app
-const app = express();
+
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
