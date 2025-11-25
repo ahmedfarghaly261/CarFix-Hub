@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const accessorySchema = new mongoose.Schema(
   {
@@ -13,4 +13,4 @@ const accessorySchema = new mongoose.Schema(
 );
 
 const Accessory = mongoose.model("Accessory", accessorySchema);
-export default Accessory;
+module.exports = Accessory;

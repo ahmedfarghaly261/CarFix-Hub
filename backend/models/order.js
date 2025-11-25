@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+
+const mongoose = require("mongoose");
 
 const repairOrderSchema = new mongoose.Schema(
   {
@@ -17,4 +18,4 @@ const repairOrderSchema = new mongoose.Schema(
 );
 
 const RepairOrder = mongoose.model("RepairOrder", repairOrderSchema);
-export default RepairOrder;
+module.exports = RepairOrder;
