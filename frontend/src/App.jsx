@@ -17,6 +17,15 @@ import ServicesPage from "./pages/admin/services";
 import ReviewsPage from "./pages/admin/reviews";
 import SettingsPage from "./pages/admin/settings";
 import ReportsPage from "./pages/admin/reports";
+import MechanicsLayout from "./pages/Mechanics/MechanicsLayout";
+import MechanicsDashboard from "./pages/Mechanics/MechanicsDashboard";
+import MechanicsJobsPage from "./pages/Mechanics/jobs";
+import MechanicsAppointmentsPage from "./pages/Mechanics/appointments";
+import MechanicsCompletedPage from "./pages/Mechanics/completed";
+import MechanicsInProgressPage from "./pages/Mechanics/in-progress";
+import MechanicsReviewsPage from "./pages/Mechanics/reviews";
+import MechanicsProfile from "./pages/Mechanics/MechanicsProfile";
+import MechanicsSettingsPage from "./pages/Mechanics/settings";
 import AddCar from "./pages/user/addCar/addCar";
 import UserLayout from "./pages/user/UserLayout";
 import Home from "./pages/user/home/home";
@@ -57,6 +66,19 @@ function App() {
               <Route path="reviews" element={<ReviewsPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="reports" element={<ReportsPage />} />
+            </Route>
+
+            {/* Mechanics routes use MechanicsLayout so the Sidebar stays persistent */}
+            <Route path="/mechanics" element={<MechanicsLayout />}>
+              <Route index element={<Navigate to="/mechanics/dashboard" replace />} />
+              <Route path="dashboard" element={<MechanicsDashboard />} />
+              <Route path="jobs" element={<MechanicsJobsPage />} />
+              <Route path="appointments" element={<MechanicsAppointmentsPage />} />
+              <Route path="completed" element={<MechanicsCompletedPage />} />
+              <Route path="in-progress" element={<MechanicsInProgressPage />} />
+              <Route path="reviews" element={<MechanicsReviewsPage />} />
+              <Route path="profile" element={<MechanicsProfile />} />
+              <Route path="settings" element={<MechanicsSettingsPage />} />
             </Route>
           </Routes>
           

@@ -1,6 +1,8 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Car, ShoppingCart, Bell, User } from 'lucide-react';
+import { CartModal } from "../../components/shared";
 
 const UserLayout = () => {
   const navLinks = [
@@ -9,6 +11,31 @@ const UserLayout = () => {
     { name: 'Shop', page: 'shop' },
     { name: 'Appointments', page: 'appointments' },
   ];
+
+  // --- Cart modal state and handlers ---
+  const [cartOpen, setCartOpen] = useState(false);
+  // Example cart items (replace with real state/logic as needed)
+  const [cartItems, setCartItems] = useState([
+    {
+      id: 1,
+      name: "Synthetic Motor Oil 5W-30",
+      price: 29.99,
+      qty: 2,
+      image: "https://cdn-icons-png.flaticon.com/512/1048/1048314.png", // Example image
+    },
+  ]);
+
+  const handleUpdateQty = (id, qty) => {
+    setCartItems(items => items.map(item => item.id === id ? { ...item, qty: Math.max(1, qty) } : item));
+  };
+  const handleRemove = (id) => {
+    setCartItems(items => items.filter(item => item.id !== id));
+  };
+  const handleCheckout = () => {
+    // Implement checkout logic here
+    alert("Proceeding to checkout!");
+    setCartOpen(false);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
@@ -30,7 +57,18 @@ const UserLayout = () => {
           </div>
 
           <div className="flex items-center space-x-6">
-            <ShoppingCart size={20} className="text-gray-600 cursor-pointer hover:text-blue-600 transition" />
+            <div className="relative">
+              <ShoppingCart
+                size={20}
+                className="text-gray-600 cursor-pointer hover:text-blue-600 transition"
+                onClick={() => setCartOpen(true)}
+              />
+              {cartItems.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full px-1.5 py-0.5 font-bold">
+                  {cartItems.length}
+                </span>
+              )}
+            </div>
             <div className="relative cursor-pointer">
               <Bell size={20} className="text-gray-600 hover:text-blue-600 transition" />
               <span className="absolute top-0 right-0 inline-flex items-center justify-center w-3 h-3 text-xs font-bold text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full">1</span>
@@ -70,6 +108,16 @@ const UserLayout = () => {
       <main className="min-h-[calc(100vh-160px)]">
         <Outlet />
       </main>
+
+      {/* Cart Modal */}
+      <CartModal
+        isOpen={cartOpen}
+        onClose={() => setCartOpen(false)}
+        cartItems={cartItems}
+        onUpdateQty={handleUpdateQty}
+        onRemove={handleRemove}
+        onCheckout={handleCheckout}
+      />
     </div>
   );
 };
