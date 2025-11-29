@@ -1,13 +1,18 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Car, 
   CheckCircle, 
   ChevronLeft, 
   Lightbulb
 } from 'lucide-react';
+import { addCar } from "../../../services/userService";
 
 function AddCar() {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [form, setForm] = useState({
     make: "",
     model: "",
@@ -38,10 +43,43 @@ function AddCar() {
     setStep(2);
   };
 
-  const handleAddVehicle = (e) => {
+  const handleAddVehicle = async (e) => {
     e.preventDefault();
-    console.log("Adding vehicle with details:", form);
-    // Logic to submit the form data
+    setLoading(true);
+    setError(null);
+    try {
+      const carData = {
+        make: form.make,
+        model: form.model,
+        year: parseInt(form.year),
+        color: form.color,
+        licensePlate: form.licensePlate,
+        vin: form.vin,
+        mileage: parseInt(form.mileage) || 0,
+        fuelType: form.fuelType,
+        transmission: form.transmission,
+      };
+      await addCar(carData);
+      // Reset form and show success
+      setStep(1);
+      setForm({
+        make: "",
+        model: "",
+        year: "",
+        color: "",
+        licensePlate: "",
+        vin: "",
+        mileage: "",
+        fuelType: "",
+        transmission: "",
+      });
+      alert('Vehicle added successfully!');
+      navigate('/user/home', { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to add vehicle');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Component definitions
@@ -297,20 +335,24 @@ function AddCar() {
               </p>
             </div>
 
+            {error && <div className="bg-red-50 border border-red-300 p-3 rounded-lg text-red-600 text-sm mb-4">{error}</div>}
+
             {/* Action Buttons */}
             <div className="flex justify-between space-x-4">
               <button
                 type="button"
                 onClick={handleBack}
                 className="w-full md:w-auto px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-100 transition duration-150"
+                disabled={loading}
               >
                 Back
               </button>
               <button
                 type="submit"
-                className="w-full px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition duration-150 shadow-md"
+                className="w-full px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition duration-150 shadow-md disabled:bg-gray-400"
+                disabled={loading}
               >
-                Add Vehicle
+                {loading ? 'Adding...' : 'Add Vehicle'}
               </button>
             </div>
           </form>

@@ -1,3 +1,24 @@
+Frontend - CarFix
+
+Local dev setup
+
+1. Copy the environment file if you need to customize it:
+
+```
+cd frontend
+cp .env .env.local
+```
+
+2. By default the frontend points to `http://localhost:5000/api`. To change it, edit `.env` and set `VITE_API_URL`.
+
+3. Install and start the frontend (Vite):
+
+```
+npm install
+npm run dev
+```
+
+Notes: The backend should have `FRONTEND_URL` set to `http://localhost:5173` (Vite default) so CORS and cookies work during development.
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

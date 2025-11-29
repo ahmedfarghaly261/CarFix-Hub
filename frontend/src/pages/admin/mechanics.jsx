@@ -9,7 +9,8 @@ import {
   FaChevronDown,
   FaTimes 
 } from 'react-icons/fa';
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { getAllMechanics, createMechanic, updateMechanic, deleteMechanic, getAllBookings, assignMechanic } from '../../services/adminService';
 
 function MechanicsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,15 +21,26 @@ function MechanicsPage() {
     phone: '',
     email: ''
   });
+  const [mechanicsData, setMechanicsData] = useState([]);
+  const [bookingsList, setBookingsList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    const mechanicsData = [
-  { name: 'Tom Wilson', specialization: 'Engine Specialist', experience: '8 years', status: 'Active' },
-  { name: 'Sarah Lee', specialization: 'Brake Systems', experience: '5 years', status: 'Active' },
-  { name: 'James Martinez', specialization: 'Electrical Systems', experience: '10 years', status: 'Active' },
-  { name: 'Linda Garcia', specialization: 'Transmission', experience: '7 years', status: 'Active' },
-  { name: 'Robert Chen', specialization: 'General Mechanic', experience: '3 years', status: 'Pending' },
-  { name: 'Maria Rodriguez', specialization: 'Diagnostics', experience: '6 years', status: 'Active' },
-];
+  useEffect(() => {
+    const fetch = async () => {
+      setLoading(true);
+      try {
+        const res = await getAllMechanics();
+        setMechanicsData(res.data || []);
+        const bRes = await getAllBookings({ limit: 10 });
+        setBookingsList(bRes.data || []);
+      } catch (err) {
+        console.error('Failed to load mechanics or bookings', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetch();
+  }, []);
   const getStatusClass = (status) => {
     switch (status) {
       case 'Active':
@@ -86,8 +98,18 @@ function MechanicsPage() {
               
               <form onSubmit={(e) => {
                 e.preventDefault();
-                // Handle form submission here
-                console.log(formData);
+                try {
+                  const createRes = createMechanic({
+                    name: formData.fullName,
+                    email: formData.email,
+                    phone: formData.phone,
+                    yearsOfExperience: formData.yearsOfExperience,
+                    specialization: formData.specialization
+                  });
+                  setMechanicsData((s) => [createRes.data, ...s]);
+                } catch (err) {
+                  alert(err.response?.data?.message || 'Create failed');
+                }
                 setIsModalOpen(false);
               }}>
                 <div className="space-y-4">
@@ -198,13 +220,13 @@ function MechanicsPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {mechanicsData.map((mechanic, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+              {mechanicsData.map((mechanic) => (
+                <tr key={mechanic._id || mechanic.name} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
                         <span className="text-xl font-medium text-gray-600">
-                          {mechanic.name.charAt(0)}
+                          {mechanic.name?.charAt(0) || '-'}
                         </span>
                       </div>
                       <div className="ml-4">
@@ -223,17 +245,42 @@ function MechanicsPage() {
                       {mechanic.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
                     <div className="flex items-center justify-center space-x-2">
                       {mechanic.status === 'Pending' && (
-                        <button className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <button onClick={async () => {
+                          try {
+                            const res = await updateMechanic(mechanic._id, { status: 'Active' });
+                            setMechanicsData((s) => s.map(m => m._id === mechanic._id ? res.data : m));
+                          } catch (err) {
+                            alert(err.response?.data?.message || 'Update failed');
+                          }
+                        }} className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                           <FaCheck className="mr-1" /> Approve
                         </button>
                       )}
-                      <button className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                      <button onClick={async () => {
+                        // placeholder for edit
+                        const newName = prompt('Edit mechanic name', mechanic.name);
+                        if (!newName) return;
+                        try {
+                          const res = await updateMechanic(mechanic._id, { name: newName });
+                          setMechanicsData((s) => s.map(m => m._id === mechanic._id ? res.data : m));
+                        } catch (err) {
+                          alert(err.response?.data?.message || 'Edit failed');
+                        }
+                      }} className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         <FaEdit className="mr-1" /> Edit
                       </button>
-                      <button className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                      <button onClick={async () => {
+                        if (!confirm('Delete this mechanic?')) return;
+                        try {
+                          await deleteMechanic(mechanic._id);
+                          setMechanicsData((s) => s.filter(m => m._id !== mechanic._id));
+                        } catch (err) {
+                          alert(err.response?.data?.message || 'Delete failed');
+                        }
+                      }} className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                         <FaTrashAlt className="mr-1" /> Delete
                       </button>
                     </div>
@@ -265,8 +312,9 @@ function MechanicsPage() {
                 className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
               >
                 <option value="">Choose booking</option>
-                <option>Booking #1234 - John S.</option>
-                <option>Booking #1235 - Sarah L.</option>
+                {bookingsList.map((b) => (
+                  <option key={b._id} value={b._id}>{`#${b._id.slice(-6)} - ${b.userId?.name || b.userId?.email || 'Customer'}`}</option>
+                ))}
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
                 <FaChevronDown className="h-4 w-4 text-gray-400" />
@@ -287,8 +335,8 @@ function MechanicsPage() {
                 <option value="">Choose mechanic</option>
                 {mechanicsData
                   .filter(m => m.status === 'Active')
-                  .map((mechanic, index) => (
-                    <option key={index} value={mechanic.name}>
+                  .map((mechanic) => (
+                    <option key={mechanic._id} value={mechanic._id}>
                       {mechanic.name} - {mechanic.specialization}
                     </option>
                   ))}
@@ -301,7 +349,17 @@ function MechanicsPage() {
 
           {/* Assign Button */}
           <div className="md:col-span-1 flex items-end">
-            <button className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <button onClick={async () => {
+              const bookingId = document.getElementById('booking')?.value;
+              const mechanicId = document.getElementById('mechanic')?.value;
+              if (!bookingId || !mechanicId) return alert('Select booking and mechanic');
+              try {
+                await assignMechanic(bookingId, { mechanicId });
+                alert('Assigned');
+              } catch (err) {
+                alert(err.response?.data?.message || 'Assign failed');
+              }
+            }} className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
               <FaCheck className="mr-2 h-4 w-4" />
               Assign Mechanic
             </button>

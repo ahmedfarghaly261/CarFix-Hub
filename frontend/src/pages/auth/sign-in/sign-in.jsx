@@ -1,4 +1,54 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { registerUser } from '../../../services/userService';
+
 function SignIn() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    firstName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+
+    // Validate
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await registerUser({
+        name: form.firstName,
+        email: form.email,
+        password: form.password,
+        role: 'user'
+      });
+      // Redirect to login
+      navigate('/login', { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <nav className=" py-4 fixed w-full z-10 top-0 left-0">
@@ -67,7 +117,7 @@ function SignIn() {
             <h3 className="mb-6 text-2xl font-bold text-center text-gray-800">
               Sign up
             </h3>
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={handleSubmit}>
               {/* First Name */}
               <div>
                 <label
@@ -83,6 +133,8 @@ function SignIn() {
                   className="w-full h-12 px-4 border border-gray-300 rounded-md shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200"
                   id="firstName"
                   name="firstName"
+                  value={form.firstName}
+                  onChange={handleChange}
                 />
               </div>
 
@@ -103,6 +155,8 @@ function SignIn() {
                   className="w-full h-12 px-4 border border-gray-300 rounded-md shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200"
                   id="email"
                   name="email"
+                  value={form.email}
+                  onChange={handleChange}
                 />
               </div>
 
@@ -121,6 +175,8 @@ function SignIn() {
                   className="w-full h-12 px-4 border border-gray-300 rounded-md shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200"
                   id="password"
                   name="password"
+                  value={form.password}
+                  onChange={handleChange}
                 />
               </div>
 
@@ -139,16 +195,21 @@ function SignIn() {
                   className="w-full h-12 px-4 border border-gray-300 rounded-md shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200"
                   id="confirmPassword"
                   name="confirmPassword"
+                  value={form.confirmPassword}
+                  onChange={handleChange}
                 />
               </div>
+
+              {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded">{error}</div>}
 
               {/* Submit Button */}
               <div className="pt-4">
                 <button
                   type="submit"
-                  className="w-full h-12 px-6 font-medium text-white rounded-md shadow-md bg-[#eb2224] hover:bg-[#c72023] focus:ring "
+                  disabled={loading}
+                  className="w-full h-12 px-6 font-medium text-white rounded-md shadow-md bg-[#eb2224] hover:bg-[#c72023] focus:ring disabled:bg-gray-400"
                 >
-                  Log In
+                  {loading ? 'Signing up...' : 'Sign Up'}
                 </button>
               </div>
               <p className="text-xs text-gray-500 text-center">

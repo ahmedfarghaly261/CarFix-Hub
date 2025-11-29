@@ -17,12 +17,16 @@ const carRoutes = require('./routes/carRoutes');
 const repairRoutes = require('./routes/repairRoutes');
 const workshopRoutes = require('./routes/workshopRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const mechanicRoutes = require('./routes/mechanicRoutes');
 
 // Middleware
 app.use(express.json());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(cookieParser());
 
@@ -31,13 +35,19 @@ const protect = async (req, res, next) => {
   try {
     const token = req.cookies.token;
     if (!token) {
+      console.log('No token found in cookies');
       return res.status(401).json({ message: 'Not authorized' });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = await User.findById(decoded.id).select('-password');
+    if (!req.user) {
+      console.log('User not found for token');
+      return res.status(401).json({ message: 'User not found' });
+    }
     next();
   } catch (error) {
+    console.log('Auth error:', error.message);
     res.status(401).json({ message: 'Not authorized' });
   }
 };
@@ -48,6 +58,8 @@ app.use('/api/cars', protect, carRoutes);
 app.use('/api/repairs', protect, repairRoutes);
 app.use('/api/workshops', protect, workshopRoutes);
 app.use('/api/notifications', protect, notificationRoutes);
+app.use('/api/admin', protect, adminRoutes);
+app.use('/api/mechanics', protect, mechanicRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

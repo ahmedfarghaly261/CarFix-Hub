@@ -1,13 +1,16 @@
 
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
-import { Car, ShoppingCart, Bell, User } from 'lucide-react';
+import { Car, ShoppingCart, Bell, User, LogOut } from 'lucide-react';
+import { useAuth } from "../../context/AuthContext";
 import { CartModal } from "../../components/shared";
 
 const UserLayout = () => {
+  const { user, logout } = useAuth();
   const navLinks = [
     { name: 'Home', page: 'home' },
     { name: 'My Profile', page: 'profile' },
+    { name: 'Add Car', page: 'addCar' },
     { name: 'Shop', page: 'shop' },
     { name: 'Appointments', page: 'appointments' },
   ];
@@ -78,9 +81,16 @@ const UserLayout = () => {
                 <User size={24} className="text-blue-600" />
               </div>
               <div className="hidden sm:block">
-                <p className="text-sm font-semibold text-gray-800">John Doe</p>
-                <p className="text-xs text-gray-500">Customer</p>
+                <p className="text-sm font-semibold text-gray-800">{user?.name || 'User'}</p>
+                <p className="text-xs text-gray-500">{user?.email || 'customer@example.com'}</p>
               </div>
+              <button
+                onClick={logout}
+                className="ml-4 p-2 text-gray-600 hover:text-red-600 transition"
+                title="Logout"
+              >
+                <LogOut size={20} />
+              </button>
             </div>
           </div>
         </div>

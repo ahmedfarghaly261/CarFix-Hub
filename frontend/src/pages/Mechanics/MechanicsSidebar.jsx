@@ -10,9 +10,12 @@ import {
   Settings,
   LogOut
 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 const MechanicsSidebar = () => {
   const [active, setActive] = useState("Dashboard");
+     const { user, logout } = useAuth();
+
 
   const menuItems = [
     { name: "Dashboard", to: "/mechanics/dashboard", icon: <LayoutDashboard size={20} /> },
@@ -59,7 +62,10 @@ const MechanicsSidebar = () => {
 
       {/* Logout Section */}
       <div className="border-t border-gray-700 p-6">
-        <button className="flex items-center w-full gap-3 text-red-400 hover:text-red-300 transition-all">
+        <button className="flex items-center w-full gap-3 text-red-400 hover:text-red-300 transition-all"
+                        onClick={logout}
+>
+          
           <LogOut size={20} />
           <span className="text-sm font-medium">Logout</span>
         </button>

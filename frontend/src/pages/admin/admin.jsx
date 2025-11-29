@@ -1,8 +1,11 @@
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { Users, Wrench, CalendarDays, CheckCircle, Bell } from "lucide-react";
+import { Users, Wrench, CalendarDays, CheckCircle, Bell,LogOut}from"lucide-react";
 import Sidebar from "./sideBar";
+import { useAuth } from "../../context/AuthContext";
 
 const AdminDashboard = () => {
+    const { user, logout } = useAuth();
+
   const pieData = [
     { name: "Completed", value: 52, color: "#10B981" },
     { name: "In Progress", value: 29, color: "#F97316" },
@@ -34,6 +37,14 @@ const AdminDashboard = () => {
             <Bell className="text-gray-500" size={20} />
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5">3</span>
           </div>
+
+             <button
+                onClick={logout}
+                className="ml-4 p-2 text-gray-600 hover:text-red-600 transition"
+                title="Logout"
+              >
+                <LogOut size={20} />
+              </button>
           <div className="flex items-center gap-2">
             <img
               src="https://cdn-icons-png.flaticon.com/512/9131/9131529.png"

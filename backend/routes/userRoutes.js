@@ -113,6 +113,11 @@ router.put('/profile', protect, async (req, res) => {
 
     user.name = req.body.name || user.name;
     user.email = req.body.email || user.email;
+    user.phone = req.body.phone || user.phone;
+    user.address = req.body.address || user.address;
+    user.city = req.body.city || user.city;
+    user.bio = req.body.bio || user.bio;
+    
     if (req.body.password) {
       user.password = req.body.password;
     }
@@ -122,6 +127,10 @@ router.put('/profile', protect, async (req, res) => {
       _id: updatedUser._id,
       name: updatedUser.name,
       email: updatedUser.email,
+      phone: updatedUser.phone,
+      address: updatedUser.address,
+      city: updatedUser.city,
+      bio: updatedUser.bio,
       role: updatedUser.role
     });
   } catch (error) {

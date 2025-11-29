@@ -1,4 +1,32 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
+
 function Login() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      const user = await login(email, password);
+      // Redirect based on role with replace to prevent back button issues
+      if (user?.role === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else if (user?.role === 'mechanic') {
+        navigate('/mechanics/dashboard', { replace: true });
+      } else {
+        navigate('/user/home', { replace: true });
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed');
+    }
+  };
+
   return (
     <>
       <nav className=" py-4 bg-[#101828] w-full z-10 top-0 left-0">
@@ -67,8 +95,7 @@ function Login() {
                   <h3 className="mb-6 text-2xl font-bold text-center text-gray-800">
                     Login to Your Account
                   </h3>
-                  <form className="space-y-4">
-                    
+                  <form className="space-y-4" onSubmit={handleSubmit}>
                     {/* Email */}
                     <div>
                       <label
@@ -81,6 +108,8 @@ function Login() {
                         placeholder="john.doe@example.org"
                         required
                         type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         className="w-full h-12 px-4 border border-gray-300 rounded-md shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200"
                         id="email"
                         name="email"
@@ -99,13 +128,17 @@ function Login() {
                         placeholder="••••••••"
                         required
                         type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         className="w-full h-12 px-4 border border-gray-300 rounded-md shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200"
                         id="password"
                         name="password"
                       />
                     </div>
 
-                   
+                    {error && (
+                      <div className="text-sm text-red-600">{error}</div>
+                    )}
 
                     {/* Submit Button */}
                     <div className="pt-4">
@@ -116,6 +149,21 @@ function Login() {
                         Log In
                       </button>
                     </div>
+
+                    {/* Sign Up Link */}
+                    <div className="pt-2 text-center">
+                      <p className="text-sm text-gray-600">
+                        Don't have an account?{' '}
+                        <button
+                          type="button"
+                          onClick={() => navigate('/sign-in')}
+                          className="font-semibold text-[#eb2224] hover:text-[#c72023] transition-colors"
+                        >
+                          Sign Up
+                        </button>
+                      </p>
+                    </div>
+
                     <p className="text-xs text-gray-500 text-center">
                       We respect your privacy. Unsubscribe at any time.
                     </p>

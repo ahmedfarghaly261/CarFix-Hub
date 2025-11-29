@@ -1,21 +1,10 @@
-import React, { useState } from 'react';
-import { X, Wrench, Car, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Wrench, Car, Clock, AlertCircle } from 'lucide-react';
 import { Droplet, Battery, Snowflake, Search, Wrench as WrenchIcon } from 'lucide-react';
-
-const services = [
-  { icon: Droplet, name: "Oil Change", duration: "30 min", price: "$49.99", color: "text-blue-600" },
-  { icon: WrenchIcon, name: "Tire Rotation", duration: "45 min", price: "$29.99", color: "text-red-500" },
-  { icon: Battery, name: "Brake Service", duration: "1-2 hrs", price: "$149.99", color: "text-purple-500" },
-  { icon: Search, name: "Battery Check", duration: "20 min", price: "$19.99", color: "text-green-600" },
-  { icon: Snowflake, name: "AC Service", duration: "1 hr", price: "$89.99", color: "text-cyan-500" },
-  { icon: Search, name: "Engine Diagnostic", duration: "1 hr", price: "$79.99", color: "text-orange-500" },
-  { icon: WrenchIcon, name: "Full Vehicle Inspection", duration: "2 hrs", price: "$99.99", color: "text-indigo-600" },
-];
-
-const vehicles = [
-  { name: "Toyota Camry 2020", plate: "ABC-1234" },
-  { name: "Honda Civic 2019", plate: "XYZ-5678" },
-];
+import { useAuth } from '../../../context/AuthContext';
+import { getUserCars } from '../../../services/userService';
+import { getServices } from '../../../services/adminService';
+import { bookAppointment } from '../../../services/appointmentService';
 
 const timeSlots = [
   "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
@@ -24,7 +13,14 @@ const timeSlots = [
 ];
 
 const BookAppointmentModal = ({ isOpen, onClose }) => {
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
+  const [vehicles, setVehicles] = useState([]);
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
     service: null,
     vehicle: null,
@@ -33,14 +29,46 @@ const BookAppointmentModal = ({ isOpen, onClose }) => {
     notes: ''
   });
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (isOpen && user) {
+      fetchUserCars();
+      fetchServices();
+    }
+  }, [isOpen, user]);
 
-  const handleSelectService = (serviceName) => {
-    setFormData({ ...formData, service: serviceName });
+  const fetchUserCars = async () => {
+    try {
+      setLoading(true);
+      const res = await getUserCars();
+      setVehicles(res.data || []);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch cars:', err);
+      setError('Could not load your vehicles');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSelectVehicle = (vehicleName) => {
-    setFormData({ ...formData, vehicle: vehicleName });
+  const fetchServices = async () => {
+    try {
+      const res = await getServices();
+      setServices(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch services:', err);
+      // Use empty array if fetch fails
+      setServices([]);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const handleSelectService = (service) => {
+    setFormData({ ...formData, service });
+  };
+
+  const handleSelectVehicle = (carId) => {
+    setFormData({ ...formData, vehicle: carId });
   };
 
   const handleSelectTime = (time) => {
@@ -57,35 +85,73 @@ const BookAppointmentModal = ({ isOpen, onClose }) => {
 
   const handleNext = () => {
     if (step === 1 && !formData.service) {
-      alert('Please select a service');
+      setError('Please select a service');
       return;
     }
     if (step === 2 && (!formData.vehicle || !formData.date)) {
-      alert('Please select a vehicle and date');
+      setError('Please select a vehicle and date');
       return;
     }
     if (step === 3 && !formData.time) {
-      alert('Please select a time');
+      setError('Please select a time');
       return;
     }
+    setError(null);
     if (step < 3) {
       setStep(step + 1);
     }
   };
 
   const handleBack = () => {
+    setError(null);
     if (step > 1) {
       setStep(step - 1);
     }
   };
 
-  const handleSubmit = () => {
-    console.log('Appointment booked:', formData);
-    alert('Appointment booked successfully!');
-    onClose();
+  const handleSubmit = async () => {
+    if (!formData.service || !formData.vehicle || !formData.date || !formData.time) {
+      setError('Please complete all required fields');
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const appointmentData = {
+        carId: formData.vehicle,
+        title: formData.service.name,
+        description: `${formData.service.name}${formData.notes ? ' - ' + formData.notes : ''}`,
+        serviceType: formData.service.name,
+        requestedDate: `${formData.date} ${formData.time}`,
+        notes: formData.notes || '',
+        priority: 'medium'
+      };
+
+      console.log('Sending appointment data:', appointmentData);
+      await bookAppointment(appointmentData);
+      setSuccess(true);
+      
+      setTimeout(() => {
+        setFormData({
+          service: null,
+          vehicle: null,
+          date: '',
+          time: null,
+          notes: ''
+        });
+        setStep(1);
+        setSuccess(false);
+        onClose();
+      }, 2000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to book appointment');
+      console.error('Booking error:', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // --- STEP 1: Select Service ---
   const Step1 = () => (
     <div>
       <div className="mb-6">
@@ -97,32 +163,37 @@ const BookAppointmentModal = ({ isOpen, onClose }) => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-        {services.map((service) => {
-          const Icon = service.icon;
-          return (
+        {loading ? (
+          <p className="text-gray-500 col-span-2">Loading services...</p>
+        ) : services.length > 0 ? (
+          services.map((service) => (
             <div
-              key={service.name}
-              onClick={() => handleSelectService(service.name)}
+              key={service._id}
+              onClick={() => handleSelectService(service)}
               className={`p-4 border-2 rounded-lg cursor-pointer transition duration-200 ${
-                formData.service === service.name
+                formData.service?._id === service._id
                   ? 'border-blue-600 bg-blue-50'
                   : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
               <div className="flex items-start justify-between mb-2">
-                <Icon size={24} className={service.color} />
-                <span className="text-sm font-semibold text-red-500">{service.price}</span>
+                <Wrench size={24} className="text-blue-600" />
+                <span className="text-sm font-semibold text-red-500">${service.price}</span>
               </div>
               <h4 className="text-sm font-semibold text-gray-800">{service.name}</h4>
               <p className="text-xs text-gray-500">{service.duration}</p>
+              {service.description && (
+                <p className="text-xs text-gray-600 mt-1">{service.description}</p>
+              )}
             </div>
-          );
-        })}
+          ))
+        ) : (
+          <p className="text-gray-500 col-span-2">No services available</p>
+        )}
       </div>
     </div>
   );
 
-  // --- STEP 2: Vehicle & Date ---
   const Step2 = () => (
     <div>
       <div className="mb-6">
@@ -134,31 +205,43 @@ const BookAppointmentModal = ({ isOpen, onClose }) => {
       </div>
 
       <div className="space-y-6">
-        {/* Vehicle Selection */}
         <div>
           <h4 className="text-sm font-semibold text-gray-800 mb-3">Select Vehicle</h4>
-          <div className="space-y-2">
-            {vehicles.map((vehicle) => (
-              <div
-                key={vehicle.plate}
-                onClick={() => handleSelectVehicle(vehicle.name)}
-                className={`p-4 border-2 rounded-lg cursor-pointer transition duration-200 flex items-center ${
-                  formData.vehicle === vehicle.name
-                    ? 'border-blue-600 bg-blue-50'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-              >
-                <Car size={20} className="text-blue-600 mr-3" />
-                <div>
-                  <p className="font-semibold text-gray-800">{vehicle.name}</p>
-                  <p className="text-sm text-gray-500">{vehicle.plate}</p>
+          {loading ? (
+            <p className="text-gray-500">Loading your vehicles...</p>
+          ) : vehicles.length > 0 ? (
+            <div className="space-y-2">
+              {vehicles.map((vehicle) => (
+                <div
+                  key={vehicle._id}
+                  onClick={() => handleSelectVehicle(vehicle._id)}
+                  className={`p-4 border-2 rounded-lg cursor-pointer transition duration-200 flex items-center ${
+                    formData.vehicle === vehicle._id
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <Car size={20} className="text-blue-600 mr-3" />
+                  <div>
+                    <p className="font-semibold text-gray-800">
+                      {vehicle.year} {vehicle.make} {vehicle.model}
+                    </p>
+                    <p className="text-sm text-gray-500">{vehicle.licensePlate || 'No plate'}</p>
+                  </div>
                 </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-3">
+              <AlertCircle className="text-yellow-600" size={20} />
+              <div>
+                <p className="font-semibold text-yellow-800">No vehicles found</p>
+                <p className="text-sm text-yellow-700">Please add a vehicle first</p>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Date Selection */}
         <div>
           <h4 className="text-sm font-semibold text-gray-800 mb-3">Select Date</h4>
           <input
@@ -166,14 +249,13 @@ const BookAppointmentModal = ({ isOpen, onClose }) => {
             value={formData.date}
             onChange={handleDateChange}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-            placeholder="mm/dd/yyyy"
+            min={new Date().toISOString().split('T')[0]}
           />
         </div>
       </div>
     </div>
   );
 
-  // --- STEP 3: Time & Notes ---
   const Step3 = () => (
     <div>
       <div className="mb-6">
@@ -185,7 +267,6 @@ const BookAppointmentModal = ({ isOpen, onClose }) => {
       </div>
 
       <div className="space-y-6">
-        {/* Time Selection */}
         <div>
           <h4 className="text-sm font-semibold text-gray-800 mb-3">Select Time</h4>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -205,7 +286,6 @@ const BookAppointmentModal = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Additional Notes */}
         <div>
           <h4 className="text-sm font-semibold text-gray-800 mb-3">Additional Notes (Optional)</h4>
           <textarea
@@ -222,6 +302,29 @@ const BookAppointmentModal = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {/* Success Modal */}
+      {success && (
+        <div className="fixed inset-0 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full text-center">
+            <div className="mb-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Appointment Booked Successfully!</h3>
+            <p className="text-gray-600 mb-6">
+              The admin will review your appointment request and assign a mechanic. You'll be notified soon.
+            </p>
+            <div className="text-sm text-gray-500">
+              Redirecting...
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Modal */}
       <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
@@ -236,6 +339,16 @@ const BookAppointmentModal = ({ isOpen, onClose }) => {
             <X size={24} />
           </button>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="px-6 pt-6 pb-0">
+            <div className="p-4 bg-red-50 border border-red-300 rounded-lg text-red-700 text-sm flex items-center gap-2">
+              <AlertCircle size={18} />
+              {error}
+            </div>
+          </div>
+        )}
 
         {/* Progress Bar */}
         <div className="px-6 pt-6 pb-4">
@@ -262,9 +375,9 @@ const BookAppointmentModal = ({ isOpen, onClose }) => {
         <div className="px-6 py-4 border-t border-gray-200 flex gap-4 justify-between">
           <button
             onClick={handleBack}
-            disabled={step === 1}
+            disabled={step === 1 || submitting}
             className={`px-6 py-2 font-semibold rounded-lg transition duration-200 ${
-              step === 1
+              step === 1 || submitting
                 ? 'text-gray-400 bg-gray-100 cursor-not-allowed'
                 : 'text-gray-700 border border-gray-300 hover:bg-gray-50'
             }`}
@@ -273,9 +386,14 @@ const BookAppointmentModal = ({ isOpen, onClose }) => {
           </button>
           <button
             onClick={step === 3 ? handleSubmit : handleNext}
-            className="px-8 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-200"
+            disabled={submitting}
+            className={`px-8 py-2 font-semibold rounded-lg transition duration-200 flex items-center gap-2 ${
+              submitting
+                ? 'bg-gray-400 text-white cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
           >
-            {step === 3 ? 'Confirm Appointment' : 'Next'}
+            {submitting ? 'Booking...' : step === 3 ? 'Confirm Appointment' : 'Next'}
           </button>
         </div>
       </div>

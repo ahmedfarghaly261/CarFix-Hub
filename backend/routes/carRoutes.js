@@ -43,8 +43,12 @@ router.post('/', async (req, res) => {
       make: req.body.make,
       model: req.body.model,
       year: req.body.year,
+      color: req.body.color,
       vin: req.body.vin,
-      licensePlate: req.body.licensePlate
+      licensePlate: req.body.licensePlate,
+      mileage: req.body.mileage || 0,
+      fuelType: req.body.fuelType,
+      transmission: req.body.transmission
     });
 
     const newCar = await car.save();
@@ -57,13 +61,17 @@ router.post('/', async (req, res) => {
 // Update a car
 router.put('/:id', checkCarOwnership, async (req, res) => {
   try {
-    const { make, model, year, vin, licensePlate } = req.body;
+    const { make, model, year, color, vin, licensePlate, mileage, fuelType, transmission } = req.body;
     
     req.car.make = make || req.car.make;
     req.car.model = model || req.car.model;
     req.car.year = year || req.car.year;
+    req.car.color = color || req.car.color;
     req.car.vin = vin || req.car.vin;
     req.car.licensePlate = licensePlate || req.car.licensePlate;
+    req.car.mileage = mileage !== undefined ? mileage : req.car.mileage;
+    req.car.fuelType = fuelType || req.car.fuelType;
+    req.car.transmission = transmission || req.car.transmission;
 
     const updatedCar = await req.car.save();
     res.json(updatedCar);

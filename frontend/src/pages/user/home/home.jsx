@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; 
+import { useNavigate } from 'react-router-dom';
 import { 
   ShieldCheck, Zap, Star, Wrench, Calendar, Clock, ExternalLink,
-  Droplet, Battery, Snowflake, Search, MapPin, ArrowRight
+  Droplet, Battery, Snowflake, Search, MapPin, ArrowRight, Plus, Car
 } from 'lucide-react';
 import BookAppointmentModal from './BookAppointmentModal';
+import { useAuth } from '../../../context/AuthContext';
+import { getAllAppointments, getUserCars } from '../../../services/userService';
 
-// --- DATA ---
+// --- STATIC DATA ---
 const featureCards = [
   { icon: ShieldCheck, title: "Certified Mechanics", description: "ASE certified professionals" },
   { icon: Zap, title: "Quick Service", description: "Same-day appointments available" },
   { icon: Star, title: "5-Star Rated", description: "Trusted by 10,000+ customers" },
 ];
 
-const appointments = [
+const defaultAppointments = [
   { service: "Oil Change & Inspection", date: "Nov 27, 2025", time: "10:00 AM", mechanic: "Mike Johnson", status: "confirmed" },
   { service: "Brake Pad Replacement", date: "Dec 5, 2025", time: "2:00 PM", mechanic: "Sarah Williams", status: "pending" },
 ];
@@ -71,13 +74,120 @@ const LocationCard = ({ address, hours }) => (
 );
 
 const Home = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [appointments, setAppointments] = useState([]);
+  const [cars, setCars] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddCarPrompt, setShowAddCarPrompt] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch appointments
+        const appointRes = await getAllAppointments();
+        setAppointments(appointRes.data || []);
+        
+        // Fetch user's cars
+        const carsRes = await getUserCars();
+        const userCars = carsRes.data || [];
+        setCars(userCars);
+        
+        // Show add car prompt if no cars exist
+        if (userCars.length === 0) {
+          setShowAddCarPrompt(true);
+        }
+      } catch (err) {
+        console.error('Failed to load data', err);
+        setAppointments(defaultAppointments);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   return (
     <div className="p-6">
+      {/* ADD CAR PROMPT - Show if user has no cars */}
+      {showAddCarPrompt && (
+        <div className="mb-8 p-6 bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200 rounded-xl shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-4 bg-orange-100 rounded-full">
+                <Car size={32} className="text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-800">Add Your First Vehicle</h3>
+                <p className="text-sm text-gray-600 mt-1">Get started by adding your vehicle to receive personalized service recommendations</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/user/addCar')}
+              className="px-6 py-3 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition whitespace-nowrap flex items-center gap-2"
+            >
+              <Plus size={20} />
+              Add Vehicle
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* YOUR VEHICLES SECTION - Show added cars */}
+      {cars.length > 0 && (
+        <section className="mb-12">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-semibold text-gray-800">Your Vehicles</h2>
+            <button
+              onClick={() => navigate('/user/addCar')}
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition"
+            >
+              <Plus size={18} />
+              Add Another
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {cars.map((car) => (
+              <div key={car._id} className="bg-white p-6 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-blue-100 rounded-lg">
+                      <Car size={24} className="text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-800">
+                        {car.year} {car.make} {car.model}
+                      </h3>
+                      <p className="text-sm text-gray-500">{car.licensePlate}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Color:</span>
+                    <span className="font-semibold text-gray-800">{car.color}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Mileage:</span>
+                    <span className="font-semibold text-gray-800">{car.mileage || 0} miles</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Fuel Type:</span>
+                    <span className="font-semibold text-gray-800">{car.fuelType}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      
       {/* WELCOME BANNER */}
       <div className="p-8 mb-8 rounded-xl bg-blue-600 shadow-xl">
-        <h1 className="text-3xl font-bold text-white mb-2">Welcome Back, John!</h1>
+        <h1 className="text-3xl font-bold text-white mb-2">Welcome Back, {user?.name || 'User'}!</h1>
         <p className="text-lg text-blue-100 mb-6 max-w-2xl">
           Keep your vehicle running smoothly with professional maintenance and repair services
         </p>

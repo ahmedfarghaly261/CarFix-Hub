@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/notification');
+const User = require('../models/user');
 
 // Get user's notifications
 router.get('/', async (req, res) => {
@@ -28,7 +29,7 @@ router.get('/unread', async (req, res) => {
 });
 
 // Mark notification as read
-router.put('/:id/read', async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const notification = await Notification.findOne({
       _id: req.params.id,
@@ -39,7 +40,7 @@ router.put('/:id/read', async (req, res) => {
       return res.status(404).json({ message: 'Notification not found' });
     }
 
-    notification.read = true;
+    notification.read = req.body.read !== undefined ? req.body.read : true;
     await notification.save();
     res.json(notification);
   } catch (error) {
@@ -72,10 +73,40 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Notification not found' });
     }
 
-    await notification.remove();
+    await Notification.findByIdAndDelete(req.params.id);
     res.json({ message: 'Notification deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Create notification for admin when new repair request comes (internal use)
+router.post('/create', async (req, res) => {
+  try {
+    const { title, message, type, relatedId } = req.body;
+    
+    // Get admin user
+    const admin = await User.findOne({ role: 'admin' });
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    const notification = new Notification({
+      recipient: admin._id,
+      title: title || 'New Repair Request',
+      message: message || 'A new repair request has been submitted',
+      type: type || 'repair_update',
+      relatedTo: {
+        model: 'RepairRequest',
+        id: relatedId
+      },
+      read: false
+    });
+
+    const newNotification = await notification.save();
+    res.status(201).json(newNotification);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 });
 

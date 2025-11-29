@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const RepairRequest = require('../models/repairRequest');
 const Notification = require('../models/notification');
+const User = require('../models/user');
 
 // Middleware to check repair request ownership or authorization
 const checkRepairRequestAuth = async (req, res, next) => {
@@ -65,34 +66,64 @@ router.get('/:id', checkRepairRequestAuth, async (req, res) => {
   }
 });
 
-// Create new repair request
+// Create new repair request (Book appointment)
 router.post('/', async (req, res) => {
   try {
+    if (!req.body.carId) {
+      return res.status(400).json({ message: 'carId is required' });
+    }
+    if (!req.body.title) {
+      return res.status(400).json({ message: 'title is required' });
+    }
+    if (!req.body.description) {
+      return res.status(400).json({ message: 'description is required' });
+    }
+
     const repairRequest = new RepairRequest({
       carId: req.body.carId,
       userId: req.user._id,
       workshopId: req.body.workshopId,
       title: req.body.title,
       description: req.body.description,
-      priority: req.body.priority
+      serviceType: req.body.serviceType,
+      requestedDate: req.body.requestedDate,
+      notes: req.body.notes,
+      priority: req.body.priority || 'medium'
     });
 
     const newRepairRequest = await repairRequest.save();
 
-    // Create notification for workshop
-    await Notification.create({
-      recipient: req.body.workshopId,
-      title: 'New Repair Request',
-      message: `New repair request for ${req.body.title}`,
-      type: 'repair_update',
-      relatedTo: {
-        model: 'RepairRequest',
-        id: newRepairRequest._id
-      }
-    });
+    // Populate user data before sending response
+    const populatedRequest = await RepairRequest.findById(newRepairRequest._id)
+      .populate('carId', 'make model year licensePlate')
+      .populate('userId', 'name email phone');
 
-    res.status(201).json(newRepairRequest);
+    // Create notification for admin (don't let this fail the main request)
+    try {
+      const admin = await User.findOne({ role: 'admin' });
+      if (admin && admin._id) {
+        await Notification.create({
+          recipient: admin._id,
+          title: 'New Appointment Request',
+          message: `New appointment request for ${req.body.title}`,
+          type: 'repair_update',
+          relatedTo: {
+            model: 'RepairRequest',
+            id: newRepairRequest._id
+          }
+        });
+        console.log('Notification created successfully for admin:', admin._id);
+      } else {
+        console.log('No admin user found - skipping notification');
+      }
+    } catch (notificationError) {
+      console.error('Failed to create notification:', notificationError.message);
+      // Don't throw - notification creation should not fail the booking
+    }
+
+    res.status(201).json(populatedRequest);
   } catch (error) {
+    console.error('Repair POST error:', error);
     res.status(400).json({ message: error.message });
   }
 });

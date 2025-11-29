@@ -53,6 +53,15 @@ const repairRequestSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  serviceType: {
+    type: String // e.g., "Oil Change", "Tire Rotation"
+  },
+  requestedDate: {
+    type: String // e.g., "2025-12-05 10:00 AM"
+  },
+  notes: {
+    type: String
+  },
   status: {
     type: String,
     enum: ['pending', 'assigned', 'in-progress', 'completed', 'cancelled'],
@@ -69,7 +78,11 @@ const repairRequestSchema = new mongoose.Schema({
     default: 0
   },
   estimatedCompletionDate: Date,
-  actualCompletionDate: Date
+  actualCompletionDate: Date,
+  assignedTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User' // The mechanic assigned to this request
+  }
 }, {
   timestamps: true
 });
