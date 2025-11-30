@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Bell, LogOut, Settings, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useAdminTheme } from "../../context/AdminThemeContext";
 import { getAdminNotifications, markNotificationAsRead } from "../../services/adminService";
 
 const AdminHeader = () => {
   const { user, logout } = useAuth();
+  const { isDarkMode } = useAdminTheme();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
@@ -76,7 +78,7 @@ const AdminHeader = () => {
   };
 
   return (
-    <header className="flex justify-between items-center bg-white text-gray-900 shadow-md p-4 border-b border-gray-200 sticky top-0 z-40">
+    <header className={`flex justify-between items-center shadow-md p-4 sticky top-0 z-40 transition-colors ${isDarkMode ? 'bg-[#1E2A38] text-gray-100 border-b border-gray-700' : 'bg-white text-gray-900 border-b border-gray-200'}`}>
       {/* Left: Search Bar */}
       <div className="flex items-center gap-4 flex-1">
         <div className="relative w-1/3">
@@ -85,7 +87,7 @@ const AdminHeader = () => {
             placeholder="🔍 Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
+            className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${isDarkMode ? 'bg-[#27384a] text-white border-gray-600' : 'bg-white text-gray-700 border-gray-300'}`}
           />
         </div>
       </div>
@@ -95,20 +97,20 @@ const AdminHeader = () => {
         {/* Refresh Button */}
         <button
           onClick={handleRefreshNotifications}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-[#27384a]' : 'hover:bg-gray-100'}`}
           title="Refresh notifications"
         >
-          <span className="text-gray-600 text-lg">🔄</span>
+          <span className="text-lg">🔄</span>
         </button>
 
         {/* Notification Bell */}
         <div className="relative" ref={notificationRef}>
           <button
             onClick={() => setShowNotificationPanel(!showNotificationPanel)}
-            className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className={`relative p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-[#27384a]' : 'hover:bg-gray-100'}`}
             title="Notifications"
           >
-            <Bell className="text-gray-600" size={20} />
+            <Bell className={isDarkMode ? 'text-gray-300' : 'text-gray-600'} size={20} />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                 {unreadCount > 9 ? "9+" : unreadCount}

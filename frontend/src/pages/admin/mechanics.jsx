@@ -10,19 +10,24 @@ import {
   FaTimes 
 } from 'react-icons/fa';
 import React, { useEffect, useState } from 'react';
+import { useAdminTheme } from '../../context/AdminThemeContext';
 import { getAllMechanics, createMechanic, updateMechanic, deleteMechanic, getAllBookings, assignMechanic } from '../../services/adminService';
+import API from '../../services/api';
 
 function MechanicsPage() {
+  const { isDarkMode } = useAdminTheme();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     yearsOfExperience: '',
     specialization: '',
     phone: '',
-    email: ''
+    email: '',
+    workshopId: ''
   });
   const [mechanicsData, setMechanicsData] = useState([]);
   const [bookingsList, setBookingsList] = useState([]);
+  const [workshopsList, setWorkshopsList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,6 +38,8 @@ function MechanicsPage() {
         setMechanicsData(res.data || []);
         const bRes = await getAllBookings({ limit: 10 });
         setBookingsList(bRes.data || []);
+        const wRes = await API.get('/workshops');
+        setWorkshopsList(wRes.data || []);
       } catch (err) {
         console.error('Failed to load mechanics or bookings', err);
       } finally {
@@ -52,24 +59,24 @@ function MechanicsPage() {
     }
   };
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b border-gray-200">
+    <div className={`min-h-screen transition-colors ${isDarkMode ? 'bg-[#101828]' : 'bg-gray-50'}`}>
+      <header className={`shadow-sm border-b ${isDarkMode ? 'bg-[#1E2A38] border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+              <h2 className={`text-2xl font-bold leading-7 sm:text-3xl sm:truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 Mechanics Management
               </h2>
             </div>
             <div className="flex items-center space-x-6">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaSearch className="h-5 w-5 text-gray-400" />
+                  <FaSearch className={`h-5 w-5 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
                 </div>
                 <input
                   type="text"
                   placeholder="Search mechanics..."
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className={`block w-full pl-10 pr-3 py-2 border rounded-md leading-5 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isDarkMode ? 'bg-[#27384a] text-white border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
                 />
               </div>
               <button 
@@ -86,35 +93,48 @@ function MechanicsPage() {
         {/* Add Mechanic Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white rounded-lg p-8 w-full max-w-md">
+            <div className={`rounded-lg p-8 w-full max-w-md ${isDarkMode ? 'bg-[#1E2A38]' : 'bg-white'}`}>
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold">Add New Mechanic</h2>
+                <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : ''}`}>Add New Mechanic</h2>
                 <button 
                   onClick={() => setIsModalOpen(false)}
-                  className="text-gray-500 hover:text-gray-700">
+                  className={`hover:opacity-70 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   <FaTimes size={24} />
                 </button>
               </div>
               
-              <form onSubmit={(e) => {
+              <form onSubmit={async (e) => {
                 e.preventDefault();
+                if (!formData.workshopId) {
+                  alert('Please select a workshop for this mechanic');
+                  return;
+                }
                 try {
-                  const createRes = createMechanic({
+                  const createRes = await createMechanic({
                     name: formData.fullName,
                     email: formData.email,
                     phone: formData.phone,
                     yearsOfExperience: formData.yearsOfExperience,
-                    specialization: formData.specialization
+                    specialization: formData.specialization,
+                    workshopId: formData.workshopId
                   });
                   setMechanicsData((s) => [createRes.data, ...s]);
+                  setFormData({
+                    fullName: '',
+                    yearsOfExperience: '',
+                    specialization: '',
+                    phone: '',
+                    email: '',
+                    workshopId: ''
+                  });
+                  setIsModalOpen(false);
                 } catch (err) {
                   alert(err.response?.data?.message || 'Create failed');
                 }
-                setIsModalOpen(false);
               }}>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       Full Name
                     </label>
                     <input
@@ -184,6 +204,25 @@ function MechanicsPage() {
                       required
                     />
                   </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Workshop <span className="text-red-600">*</span>
+                    </label>
+                    <select
+                      value={formData.workshopId}
+                      onChange={(e) => setFormData({...formData, workshopId: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Select Workshop</option>
+                      {workshopsList.map((workshop) => (
+                        <option key={workshop._id} value={workshop._id}>
+                          {workshop.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 
                 <div className="mt-6 flex justify-end space-x-3">
@@ -214,7 +253,7 @@ function MechanicsPage() {
               <tr>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specialization</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Experience</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Workshop</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
@@ -235,10 +274,20 @@ function MechanicsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{mechanic.specialization}</div>
+                    <div className="text-sm text-gray-900">{mechanic.specialization || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{mechanic.experience}</div>
+                    <div className="text-sm text-gray-900">
+                      {mechanic.workshopId ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Assigned
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          Not Assigned
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClass(mechanic.status)}`}>
@@ -260,17 +309,22 @@ function MechanicsPage() {
                         </button>
                       )}
                       <button onClick={async () => {
-                        // placeholder for edit
-                        const newName = prompt('Edit mechanic name', mechanic.name);
-                        if (!newName) return;
+                        const newWorkshopId = window.prompt(
+                          'Assign to workshop (select number):\n' + 
+                          workshopsList.map((w, i) => `${i + 1}. ${w.name}`).join('\n'),
+                          mechanic.workshopId ? workshopsList.findIndex(w => w._id === mechanic.workshopId) + 1 : ''
+                        );
+                        if (!newWorkshopId) return;
+                        const selected = workshopsList[parseInt(newWorkshopId) - 1];
+                        if (!selected) return alert('Invalid selection');
                         try {
-                          const res = await updateMechanic(mechanic._id, { name: newName });
+                          const res = await updateMechanic(mechanic._id, { workshopId: selected._id });
                           setMechanicsData((s) => s.map(m => m._id === mechanic._id ? res.data : m));
                         } catch (err) {
-                          alert(err.response?.data?.message || 'Edit failed');
+                          alert(err.response?.data?.message || 'Update failed');
                         }
                       }} className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        <FaEdit className="mr-1" /> Edit
+                        <FaEdit className="mr-1" /> Assign Workshop
                       </button>
                       <button onClick={async () => {
                         if (!confirm('Delete this mechanic?')) return;

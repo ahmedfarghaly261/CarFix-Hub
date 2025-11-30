@@ -1,12 +1,14 @@
 
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
-import { Car, ShoppingCart, Bell, User, LogOut } from 'lucide-react';
+import { Car, ShoppingCart, Bell, User, LogOut, Sun, Moon } from 'lucide-react';
 import { useAuth } from "../../context/AuthContext";
+import { useUserTheme } from "../../context/UserThemeContext";
 import { CartModal } from "../../components/shared";
 
 const UserLayout = () => {
   const { user, logout } = useAuth();
+  const { isDarkMode, toggleTheme } = useUserTheme();
   const navLinks = [
     { name: 'Home', page: 'home' },
     { name: 'My Profile', page: 'profile' },
@@ -41,21 +43,21 @@ const UserLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className={`min-h-screen font-sans transition-colors ${isDarkMode ? 'bg-[#101828]' : 'bg-gray-50'}`}>
       {/* ---------------------------------------------------- */}
       {/* --- HEADER --- */}
       {/* ---------------------------------------------------- */}
-      <header className="w-full bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+      <header className={`w-full shadow-sm border-b sticky top-0 z-50 transition-colors ${isDarkMode ? 'bg-[#1E2A38] border-gray-700' : 'bg-white border-gray-200'}`}>
         
         {/* Main Header Bar */}
-        <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100">
+        <div className={`flex items-center justify-between px-6 py-3 border-b transition-colors ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-blue-600 rounded-lg">
               <Car size={24} className="text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-gray-800">CarFix</h1>
-              <p className="text-xs text-gray-500">Your trusted auto care partner</p>
+              <h1 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>CarFix</h1>
+              <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Your trusted auto care partner</p>
             </div>
           </div>
 
@@ -63,7 +65,7 @@ const UserLayout = () => {
             <div className="relative">
               <ShoppingCart
                 size={20}
-                className="text-gray-600 cursor-pointer hover:text-blue-600 transition"
+                className={`cursor-pointer transition ${isDarkMode ? 'text-gray-300 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'}`}
                 onClick={() => setCartOpen(true)}
               />
               {cartItems.length > 0 && (
@@ -73,9 +75,23 @@ const UserLayout = () => {
               )}
             </div>
             <div className="relative cursor-pointer">
-              <Bell size={20} className="text-gray-600 hover:text-blue-600 transition" />
+              <Bell size={20} className={`transition ${isDarkMode ? 'text-gray-300 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'}`} />
               <span className="absolute top-0 right-0 inline-flex items-center justify-center w-3 h-3 text-xs font-bold text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full">1</span>
             </div>
+
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'bg-[#27384a] hover:bg-[#2f3d52]' : 'bg-gray-100 hover:bg-gray-200'}`}
+              title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {isDarkMode ? (
+                <Sun size={20} className="text-yellow-400" />
+              ) : (
+                <Moon size={20} className="text-gray-600" />
+              )}
+            </button>
+
             <div className="flex items-center space-x-2">
               <div className="p-1 bg-blue-100 rounded-full">
                 <User size={24} className="text-blue-600" />

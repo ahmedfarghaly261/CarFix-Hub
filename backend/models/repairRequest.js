@@ -89,15 +89,20 @@ const repairRequestSchema = new mongoose.Schema({
 
 // Calculate total cost when iterations are updated
 repairRequestSchema.pre('save', function(next) {
-  if (this.iterations && this.iterations.length > 0) {
-    this.totalCost = this.iterations.reduce((total, iteration) => {
-      const partsCost = iteration.cost?.parts?.reduce((sum, part) => 
-        sum + (part.price * part.quantity), 0) || 0;
-      const laborCost = iteration.cost?.labor || 0;
-      return total + partsCost + laborCost;
-    }, 0);
+  try {
+    if (this.iterations && this.iterations.length > 0) {
+      this.totalCost = this.iterations.reduce((total, iteration) => {
+        const partsCost = iteration.cost?.parts?.reduce((sum, part) => 
+          sum + (part.price * part.quantity), 0) || 0;
+        const laborCost = iteration.cost?.labor || 0;
+        return total + partsCost + laborCost;
+      }, 0);
+    }
+    next();
+  } catch (error) {
+    console.error('Error in repairRequest pre-save hook:', error);
+    next(error);
   }
-  next();
 });
 
 module.exports = mongoose.model('RepairRequest', repairRequestSchema);

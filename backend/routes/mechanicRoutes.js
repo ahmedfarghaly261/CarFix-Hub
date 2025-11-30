@@ -128,27 +128,77 @@ router.put('/jobs/:id/start', mechanicOnly, async (req, res) => {
   try {
     const job = await RepairRequest.findById(req.params.id);
     
-    if (!job) return res.status(404).json({ message: 'Job not found' });
+    if (!job) {
+      console.log('Job not found:', req.params.id);
+      return res.status(404).json({ message: 'Job not found' });
+    }
     
-    // Verify mechanic has access
-    if (job.workshopId?.toString() !== req.user.workshopId?.toString()) {
-      return res.status(403).json({ message: 'Not authorized' });
+    console.log('Start job attempt:', {
+      jobId: req.params.id,
+      jobWorkshopId: job.workshopId?.toString(),
+      jobAssignedTo: job.assignedTo?.toString(),
+      userId: req.user._id.toString(),
+      userWorkshopId: req.user.workshopId?.toString(),
+      userRole: req.user.role
+    });
+    
+    // REQUIREMENT: Mechanic must be assigned to a workshop
+    if (!req.user.workshopId) {
+      console.log('Mechanic not assigned to any workshop');
+      return res.status(403).json({ 
+        message: 'You must be assigned to a workshop to work on jobs' 
+      });
+    }
+    
+    // Check if mechanic is assigned directly to this job
+    const isAssignedToMechanic = job.assignedTo && job.assignedTo.toString() === req.user._id.toString();
+    
+    // Check if mechanic's workshop matches job's workshop
+    const isInSameWorkshop = job.workshopId && 
+                             job.workshopId.toString() === req.user.workshopId.toString();
+    
+    // Check if job is unassigned (no workshop yet) - mechanic can claim it
+    const isUnassignedJob = !job.workshopId && !job.assignedTo;
+    
+    // Verify authorization: must be directly assigned OR in same workshop OR job is unassigned
+    if (!isAssignedToMechanic && !isInSameWorkshop && !isUnassignedJob) {
+      console.log('Mechanic not authorized for this specific job', {
+        isAssignedToMechanic,
+        isInSameWorkshop,
+        isUnassignedJob
+      });
+      return res.status(403).json({ message: 'Not authorized for this job' });
+    }
+    
+    // Auto-assign: if job has no workshop, assign it to the mechanic's workshop
+    if (!job.workshopId) {
+      job.workshopId = req.user.workshopId;
+      console.log('Assigned job to workshop:', req.user.workshopId);
     }
 
     job.status = 'in-progress';
     await job.save();
 
-    // Create notification for user
-    await Notification.create({
-      userId: job.userId,
-      type: 'job_started',
-      title: 'Work Started',
-      message: `Your repair request "${job.title}" has been started`,
-      relatedId: job._id
-    });
+    // Create notification for user (don't let this fail the main request)
+    try {
+      await Notification.create({
+        recipient: job.userId,
+        type: 'status_change',
+        title: 'Work Started',
+        message: `Your repair request "${job.title}" has been started`,
+        relatedTo: {
+          model: 'RepairRequest',
+          id: job._id
+        }
+      });
+    } catch (notificationError) {
+      console.error('Failed to create notification:', notificationError.message);
+      // Don't throw - notification failure shouldn't fail the main request
+    }
 
     res.json(job);
   } catch (error) {
+    console.error('Start job error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -157,23 +207,48 @@ router.put('/jobs/:id/start', mechanicOnly, async (req, res) => {
 router.post('/jobs/:id/update', mechanicOnly, async (req, res) => {
   try {
     const { message } = req.body;
+    
+    // REQUIREMENT: Mechanic must be assigned to a workshop
+    if (!req.user.workshopId) {
+      return res.status(403).json({ 
+        message: 'You must be assigned to a workshop to work on jobs' 
+      });
+    }
+    
     const job = await RepairRequest.findById(req.params.id);
     
     if (!job) return res.status(404).json({ message: 'Job not found' });
     
-    // Verify mechanic has access
-    if (job.workshopId?.toString() !== req.user.workshopId?.toString()) {
+    // Verify mechanic has access: either directly assigned, in same workshop, or job is unassigned
+    const isAssignedToMechanic = job.assignedTo && job.assignedTo.toString() === req.user._id.toString();
+    const isInSameWorkshop = job.workshopId && job.workshopId.toString() === req.user.workshopId.toString();
+    
+    if (!isAssignedToMechanic && !isInSameWorkshop) {
       return res.status(403).json({ message: 'Not authorized' });
+    }
+    
+    // Auto-assign job to mechanic's workshop if unassigned
+    if (!job.workshopId) {
+      job.workshopId = req.user.workshopId;
+      await job.save();
     }
 
     // Create notification for user
-    await Notification.create({
-      userId: job.userId,
-      type: 'job_update',
-      title: 'Work Update',
-      message: message,
-      relatedId: job._id
-    });
+    try {
+      await Notification.create({
+        recipient: job.userId,
+        type: 'repair_update',
+        title: 'Work Update',
+        message: message,
+        relatedTo: {
+          model: 'RepairRequest',
+          id: job._id
+        }
+      });
+    } catch (notificationError) {
+      console.error('Failed to create notification:', notificationError.message);
+      // Don't throw - notification failure shouldn't fail the main request
+    }
 
     res.json({ message: 'Update sent successfully' });
   } catch (error) {
@@ -185,13 +260,29 @@ router.post('/jobs/:id/update', mechanicOnly, async (req, res) => {
 router.put('/jobs/:id/complete', mechanicOnly, async (req, res) => {
   try {
     const { notes, cost } = req.body;
+    
+    // REQUIREMENT: Mechanic must be assigned to a workshop
+    if (!req.user.workshopId) {
+      return res.status(403).json({ 
+        message: 'You must be assigned to a workshop to work on jobs' 
+      });
+    }
+    
     const job = await RepairRequest.findById(req.params.id);
     
     if (!job) return res.status(404).json({ message: 'Job not found' });
     
-    // Verify mechanic has access
-    if (job.workshopId?.toString() !== req.user.workshopId?.toString()) {
+    // Verify mechanic has access: either directly assigned, in same workshop, or job is unassigned
+    const isAssignedToMechanic = job.assignedTo && job.assignedTo.toString() === req.user._id.toString();
+    const isInSameWorkshop = job.workshopId && job.workshopId.toString() === req.user.workshopId.toString();
+    
+    if (!isAssignedToMechanic && !isInSameWorkshop) {
       return res.status(403).json({ message: 'Not authorized' });
+    }
+    
+    // Auto-assign job to mechanic's workshop if unassigned
+    if (!job.workshopId) {
+      job.workshopId = req.user.workshopId;
     }
 
     job.status = 'completed';
@@ -205,13 +296,21 @@ router.put('/jobs/:id/complete', mechanicOnly, async (req, res) => {
     });
 
     // Create notification for user
-    await Notification.create({
-      userId: job.userId,
-      type: 'job_completed',
-      title: 'Work Completed',
-      message: `Your repair request "${job.title}" has been completed`,
-      relatedId: job._id
-    });
+    try {
+      await Notification.create({
+        recipient: job.userId,
+        type: 'status_change',
+        title: 'Work Completed',
+        message: `Your repair request "${job.title}" has been completed`,
+        relatedTo: {
+          model: 'RepairRequest',
+          id: job._id
+        }
+      });
+    } catch (notificationError) {
+      console.error('Failed to create notification:', notificationError.message);
+      // Don't throw - notification failure shouldn't fail the main request
+    }
 
     res.json(job);
   } catch (error) {

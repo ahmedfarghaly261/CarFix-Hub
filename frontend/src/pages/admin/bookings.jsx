@@ -10,7 +10,7 @@ import {
   Check,
   X
 } from 'lucide-react';
-
+import { useAdminTheme } from '../../context/AdminThemeContext';
 import { getAllBookings, updateBooking, assignMechanic, getMechanics } from '../../services/adminService';
 
 // Helper object for styling status badges
@@ -24,6 +24,7 @@ const statusClasses = {
 
 // --- Bookings Page Component ---
 export default function BookingsPage() {
+  const { isDarkMode } = useAdminTheme();
   const [bookings, setBookings] = useState([]);
   const [mechanics, setMechanics] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -90,140 +91,107 @@ export default function BookingsPage() {
   };
   return (
     // Main container with light gray background
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen transition-colors ${isDarkMode ? 'bg-[#101828]' : 'bg-gray-50'}`}>
       
       {/* --- App Header --- */}
-      <header className="bg-white border-b border-slate-200">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            
-            {/* Search Bar */}
-            <div className="flex-shrink-0 flex items-center">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search appointments..."
-                  className="bg-gray-100 rounded-md py-2 pl-10 pr-4 block w-full sm:text-sm border-transparent focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-            </div>
-
-            {/* Right Side Icons & User */}
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <ShoppingCart className="h-6 w-6 text-gray-500 hover:text-gray-700" />
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="hidden md:block text-right">
-                  <div className="font-medium text-gray-800">Admin</div>
-                  <div className="text-sm text-gray-500">admin@carfix.com</div>
-                </div>
-                <UserCircle className="h-10 w-10 text-gray-400" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+  
 
       {/* --- Main Content Area --- */}
       <main className="p-6 sm:p-8">
         
         {/* Page Header */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold text-gray-800">
+          <h1 className={`text-2xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
             Appointment Requests
           </h1>
           <div className="flex gap-2">
             <button 
               onClick={() => setFilterStatus('pending')}
-              className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'pending' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}>
+              className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'pending' ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-[#1E2A38] text-gray-300 border-gray-700' : 'bg-white text-gray-700 border-gray-300')} border`}>
               Pending
             </button>
             <button 
               onClick={() => setFilterStatus('assigned')}
-              className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'assigned' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}>
+              className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === 'assigned' ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-[#1E2A38] text-gray-300 border-gray-700' : 'bg-white text-gray-700 border-gray-300')} border`}>
               Assigned
             </button>
             <button 
               onClick={() => setFilterStatus('')}
-              className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === '' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}>
+              className={`px-4 py-2 rounded-md text-sm font-medium ${filterStatus === '' ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-[#1E2A38] text-gray-300 border-gray-700' : 'bg-white text-gray-700 border-gray-300')} border`}>
               All
             </button>
           </div>
         </div>
 
         {/* --- Bookings Table Card --- */}
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className={`rounded-lg shadow-lg overflow-hidden ${isDarkMode ? 'bg-[#1E2A38]' : 'bg-white'}`}>
           
           {/* Card Header */}
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
-            <AlertCircle className="text-blue-600" size={20} />
-            <h2 className="text-xl font-semibold text-gray-800">
+          <div className={`px-6 py-4 border-b flex items-center gap-2 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <AlertCircle className={isDarkMode ? 'text-blue-400' : 'text-blue-600'} size={20} />
+            <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
               {filterStatus === 'pending' ? 'Pending Appointments' : 'All Appointments'}
             </h2>
-            <span className="ml-auto bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+            <span className={`ml-auto px-3 py-1 rounded-full text-sm font-medium ${isDarkMode ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>
               {bookings.length} {filterStatus === 'pending' ? 'pending' : 'total'}
             </span>
           </div>
 
           {/* Table */}
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className={`min-w-full divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+              <thead className={isDarkMode ? 'bg-[#27384a]' : 'bg-gray-50'}>
                 <tr>
                   {['ID', 'Customer', 'Vehicle', 'Service', 'Date & Time', 'Status', 'Mechanic', 'Actions'].map((header) => (
                     <th
                       key={header}
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}
                     >
                       {header}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className={`divide-y ${isDarkMode ? 'bg-[#1E2A38] divide-gray-700' : 'bg-white divide-gray-200'}`}>
                 {loading ? (
-                  <tr><td colSpan={8} className="px-6 py-4 text-center text-gray-500">Loading...</td></tr>
+                  <tr><td colSpan={8} className={`px-6 py-4 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading...</td></tr>
                 ) : bookings.length === 0 ? (
-                  <tr><td colSpan={8} className="px-6 py-4 text-center text-gray-500">No appointments found</td></tr>
+                  <tr><td colSpan={8} className={`px-6 py-4 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>No appointments found</td></tr>
                 ) : (
                   bookings.map((booking) => (
-                    <tr key={booking._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <tr key={booking._id} className={isDarkMode ? 'hover:bg-[#27384a]' : 'hover:bg-gray-50'}>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                         #{booking._id.slice(-6)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         <div>
-                          <p className="font-medium">{booking.userId?.name || 'N/A'}</p>
-                          <p className="text-xs text-gray-500">{booking.userId?.email || 'N/A'}</p>
+                          <p className={`font-medium ${isDarkMode ? 'text-white' : ''}`}>{booking.userId?.name || 'N/A'}</p>
+                          <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{booking.userId?.email || 'N/A'}</p>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         <div>
-                          <p className="font-medium">
+                          <p className={`font-medium ${isDarkMode ? 'text-white' : ''}`}>
                             {booking.carId?.year} {booking.carId?.make} {booking.carId?.model}
                           </p>
-                          <p className="text-xs text-gray-500">{booking.carId?.licensePlate || 'N/A'}</p>
+                          <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{booking.carId?.licensePlate || 'N/A'}</p>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         {booking.serviceType || booking.title}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         {booking.requestedDate ? new Date(booking.requestedDate).toLocaleString() : 'Not specified'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusClasses[booking.status] || 'bg-gray-100 text-gray-700'}`}>
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusClasses[booking.status] || (isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700')}`}>
                           {booking.status || 'pending'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         {booking.assignedTo?.name || (
-                          <span className="text-gray-400">Not assigned</span>
+                          <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>Not assigned</span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2 flex">

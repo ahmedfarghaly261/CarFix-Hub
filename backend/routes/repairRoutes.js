@@ -7,23 +7,51 @@ const User = require('../models/user');
 // Middleware to check repair request ownership or authorization
 const checkRepairRequestAuth = async (req, res, next) => {
   try {
+    if (!req.user) {
+      console.log('No user found in request');
+      return res.status(401).json({ message: 'Not authorized - no user' });
+    }
+
     const repairRequest = await RepairRequest.findById(req.params.id);
     if (!repairRequest) {
       return res.status(404).json({ message: 'Repair request not found' });
     }
     
-    // Allow access if user is owner, assigned mechanic, or admin
-    if (
-      repairRequest.userId.toString() === req.user._id.toString() ||
-      req.user.role === 'admin' ||
-      (req.user.role === 'mechanic' && repairRequest.workshopId.toString() === req.user.workshop.toString())
-    ) {
+    // Allow access if:
+    // 1. User is the car owner (userId)
+    // 2. User is admin
+    // 3. User is the assigned mechanic (assignedTo)
+    // 4. User is a mechanic in the same workshop
+    const isOwner = repairRequest.userId.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === 'admin';
+    const isAssignedMechanic = req.user.role === 'mechanic' && 
+                               repairRequest.assignedTo && 
+                               repairRequest.assignedTo.toString() === req.user._id.toString();
+    const isWorkshopMechanic = req.user.role === 'mechanic' && 
+                               req.user.workshopId && 
+                               repairRequest.workshopId && 
+                               repairRequest.workshopId.toString() === req.user.workshopId.toString();
+    
+    if (isOwner || isAdmin || isAssignedMechanic || isWorkshopMechanic) {
       req.repairRequest = repairRequest;
       next();
     } else {
+      console.log('Authorization failed:', {
+        userId: req.user._id.toString(),
+        repairUserId: repairRequest.userId.toString(),
+        repairAssignedTo: repairRequest.assignedTo?.toString(),
+        userRole: req.user.role,
+        userWorkshop: req.user.workshopId?.toString(),
+        repairWorkshop: repairRequest.workshopId?.toString(),
+        isOwner,
+        isAdmin,
+        isAssignedMechanic,
+        isWorkshopMechanic
+      });
       res.status(403).json({ message: 'Not authorized' });
     }
   } catch (error) {
+    console.error('Auth middleware error:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -36,7 +64,23 @@ router.get('/', async (req, res) => {
     if (req.user.role === 'user') {
       query.userId = req.user._id;
     } else if (req.user.role === 'mechanic') {
-      query.workshopId = req.user.workshop;
+      // Show jobs assigned directly to them OR jobs from their workshop
+      const orConditions = [];
+      
+      // Jobs directly assigned to this mechanic
+      orConditions.push({ assignedTo: req.user._id });
+      
+      // Jobs from their workshop (if they belong to one)
+      if (req.user.workshopId) {
+        orConditions.push({ workshopId: req.user.workshopId });
+      }
+      
+      if (orConditions.length > 0) {
+        query.$or = orConditions;
+      } else {
+        // If mechanic has no workshop and no assignments, return empty
+        query._id = { $in: [] };
+      }
     }
     // Admin can see all requests
 
@@ -47,6 +91,7 @@ router.get('/', async (req, res) => {
       
     res.json(repairRequests);
   } catch (error) {
+    console.error('GET /repairs error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -175,7 +220,7 @@ router.put('/:id', checkRepairRequestAuth, async (req, res) => {
   try {
     const allowedUpdates = ['title', 'description', 'priority', 'status', 'estimatedCompletionDate'];
     allowedUpdates.forEach(update => {
-      if (req.body[update]) {
+      if (req.body[update] !== undefined) {
         req.repairRequest[update] = req.body[update];
       }
     });
@@ -183,7 +228,8 @@ router.put('/:id', checkRepairRequestAuth, async (req, res) => {
     const updatedRequest = await req.repairRequest.save();
     res.json(updatedRequest);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('PUT /repairs/:id error:', error);
+    res.status(500).json({ message: error.message });
   }
 });
 

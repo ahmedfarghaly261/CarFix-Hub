@@ -4,6 +4,7 @@ import {
   ShieldCheck, Zap, Star, Wrench, Calendar, Clock, ExternalLink,
   Droplet, Battery, Snowflake, Search, MapPin, ArrowRight, Plus, Car
 } from 'lucide-react';
+import { useUserTheme } from '../../../context/UserThemeContext';
 import BookAppointmentModal from './BookAppointmentModal';
 import { useAuth } from '../../../context/AuthContext';
 import { getAllAppointments, getUserCars } from '../../../services/userService';
@@ -35,38 +36,38 @@ const locationInfo = {
 };
 
 // Service Card Component
-const ServiceCard = ({ icon: Icon, name, duration, price, color }) => (
-  <div className="flex flex-col p-5 bg-white rounded-xl shadow-md border border-gray-200 transition duration-300 hover:shadow-lg">
+const ServiceCard = ({ icon: Icon, name, duration, price, color, isDarkMode }) => (
+  <div className={`flex flex-col p-5 rounded-xl shadow-md border transition duration-300 hover:shadow-lg ${isDarkMode ? 'bg-[#1E2A38] border-gray-700 hover:bg-[#27384a]' : 'bg-white border-gray-200 hover:shadow-lg'}`}>
     <div className="flex items-start justify-between mb-4">
       <Icon size={32} className={color} />
-      <span className="text-lg font-semibold text-red-500">{price}</span>
+      <span className={`text-lg font-semibold ${isDarkMode ? 'text-red-400' : 'text-red-500'}`}>{price}</span>
     </div>
-    <h3 className="text-lg font-semibold text-gray-800 mb-1">{name}</h3>
-    <div className="flex items-center text-sm text-gray-500 mb-6">
+    <h3 className={`text-lg font-semibold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{name}</h3>
+    <div className={`flex items-center text-sm mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
       <Clock size={16} className="mr-1" />
       <span>{duration}</span>
     </div>
-    <button className="mt-auto px-4 py-2 border border-blue-600 text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition duration-150">
+    <button className={`mt-auto px-4 py-2 border font-semibold rounded-lg transition duration-150 ${isDarkMode ? 'border-blue-400 text-blue-400 hover:bg-blue-900/30' : 'border-blue-600 text-blue-600 hover:bg-blue-50'}`}>
       Book Now
     </button>
   </div>
 );
 
 // Location Card Component
-const LocationCard = ({ address, hours }) => (
-  <div className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
-    <h2 className="text-xl font-semibold text-gray-800 mb-4">Visit Our Location</h2>
+const LocationCard = ({ address, hours, isDarkMode }) => (
+  <div className={`p-6 rounded-xl shadow-md border ${isDarkMode ? 'bg-[#1E2A38] border-gray-700' : 'bg-white border-gray-200'}`}>
+    <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Visit Our Location</h2>
     <div className="flex items-start mb-3">
-      <MapPin size={20} className="text-blue-600 flex-shrink-0 mt-1 mr-3" />
-      <p className="text-gray-700">{address}</p>
+      <MapPin size={20} className={`flex-shrink-0 mt-1 mr-3 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+      <p className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>{address}</p>
     </div>
     <div className="flex items-start mb-4">
-      <Clock size={20} className="text-blue-600 flex-shrink-0 mt-1 mr-3" />
-      <p className="text-gray-700">
+      <Clock size={20} className={`flex-shrink-0 mt-1 mr-3 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+      <p className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
         <span className="font-semibold">Hours:</span> {hours.weekdays}, {hours.saturday}, {hours.sunday}
       </p>
     </div>
-    <button className="flex items-center text-blue-600 font-medium hover:text-blue-700 transition mt-2">
+    <button className={`flex items-center font-medium transition mt-2 ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}>
       Get Directions
       <ArrowRight size={16} className="ml-2" />
     </button>
@@ -76,6 +77,7 @@ const LocationCard = ({ address, hours }) => (
 const Home = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isDarkMode } = useUserTheme();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [appointments, setAppointments] = useState([]);
   const [cars, setCars] = useState([]);
@@ -109,23 +111,23 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="p-6">
+    <div className={`p-6 min-h-screen transition-colors ${isDarkMode ? 'bg-[#101828]' : 'bg-gray-50'}`}>
       {/* ADD CAR PROMPT - Show if user has no cars */}
       {showAddCarPrompt && (
-        <div className="mb-8 p-6 bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200 rounded-xl shadow-md">
+        <div className={`mb-8 p-6 border-2 rounded-xl shadow-md ${isDarkMode ? 'bg-gradient-to-r from-orange-900/30 to-red-900/30 border-orange-700' : 'bg-gradient-to-r from-orange-50 to-red-50 border-orange-200'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-4 bg-orange-100 rounded-full">
-                <Car size={32} className="text-orange-600" />
+              <div className={`p-4 rounded-full ${isDarkMode ? 'bg-orange-900/40' : 'bg-orange-100'}`}>
+                <Car size={32} className={isDarkMode ? 'text-orange-400' : 'text-orange-600'} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-800">Add Your First Vehicle</h3>
-                <p className="text-sm text-gray-600 mt-1">Get started by adding your vehicle to receive personalized service recommendations</p>
+                <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Add Your First Vehicle</h3>
+                <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Get started by adding your vehicle to receive personalized service recommendations</p>
               </div>
             </div>
             <button
               onClick={() => navigate('/user/addCar')}
-              className="px-6 py-3 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition whitespace-nowrap flex items-center gap-2"
+              className={`px-6 py-3 font-semibold rounded-lg transition whitespace-nowrap flex items-center gap-2 ${isDarkMode ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-orange-500 text-white hover:bg-orange-600'}`}
             >
               <Plus size={20} />
               Add Vehicle
@@ -138,10 +140,10 @@ const Home = () => {
       {cars.length > 0 && (
         <section className="mb-12">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-semibold text-gray-800">Your Vehicles</h2>
+            <h2 className={`text-2xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Your Vehicles</h2>
             <button
               onClick={() => navigate('/user/addCar')}
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition"
+              className={`flex items-center gap-2 font-medium transition ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
             >
               <Plus size={18} />
               Add Another
@@ -150,33 +152,33 @@ const Home = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {cars.map((car) => (
-              <div key={car._id} className="bg-white p-6 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition">
+              <div key={car._id} className={`p-6 rounded-xl shadow-md border hover:shadow-lg transition ${isDarkMode ? 'bg-[#1E2A38] border-gray-700' : 'bg-white border-gray-200'}`}>
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-3 bg-blue-100 rounded-lg">
-                      <Car size={24} className="text-blue-600" />
+                    <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
+                      <Car size={24} className={isDarkMode ? 'text-blue-400' : 'text-blue-600'} />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-gray-800">
+                      <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                         {car.year} {car.make} {car.model}
                       </h3>
-                      <p className="text-sm text-gray-500">{car.licensePlate}</p>
+                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{car.licensePlate}</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
+                <div className={`p-4 rounded-lg space-y-2 text-sm ${isDarkMode ? 'bg-[#27384a]' : 'bg-gray-50'}`}>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Color:</span>
-                    <span className="font-semibold text-gray-800">{car.color}</span>
+                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Color:</span>
+                    <span className={`font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>{car.color}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Mileage:</span>
-                    <span className="font-semibold text-gray-800">{car.mileage || 0} miles</span>
+                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Mileage:</span>
+                    <span className={`font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>{car.mileage || 0} miles</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Fuel Type:</span>
-                    <span className="font-semibold text-gray-800">{car.fuelType}</span>
+                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Fuel Type:</span>
+                    <span className={`font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>{car.fuelType}</span>
                   </div>
                 </div>
               </div>
@@ -186,14 +188,14 @@ const Home = () => {
       )}
       
       {/* WELCOME BANNER */}
-      <div className="p-8 mb-8 rounded-xl bg-blue-600 shadow-xl">
+      <div className={`p-8 mb-8 rounded-xl shadow-xl ${isDarkMode ? 'bg-blue-900' : 'bg-blue-600'}`}>
         <h1 className="text-3xl font-bold text-white mb-2">Welcome Back, {user?.name || 'User'}!</h1>
-        <p className="text-lg text-blue-100 mb-6 max-w-2xl">
+        <p className={`text-lg mb-6 max-w-2xl ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}>
           Keep your vehicle running smoothly with professional maintenance and repair services
         </p>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="px-6 py-3 bg-orange-500 text-white text-base font-semibold rounded-lg hover:bg-orange-600 transition duration-200 shadow-lg"
+          className={`px-6 py-3 text-white text-base font-semibold rounded-lg transition duration-200 shadow-lg ${isDarkMode ? 'bg-orange-600 hover:bg-orange-700' : 'bg-orange-500 hover:bg-orange-600'}`}
         >
           Book an Appointment
         </button>
@@ -202,13 +204,13 @@ const Home = () => {
       {/* FEATURE CARDS */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         {featureCards.map((card, index) => (
-          <div key={index} className="flex p-6 bg-white rounded-xl shadow-md border border-gray-100 transition duration-300 hover:shadow-lg">
-            <div className="p-3 bg-white border border-gray-200 rounded-lg mr-4">
-              <card.icon size={24} className="text-blue-600" />
+          <div key={index} className={`flex p-6 rounded-xl shadow-md border transition duration-300 hover:shadow-lg ${isDarkMode ? 'bg-[#1E2A38] border-gray-700' : 'bg-white border-gray-100'}`}>
+            <div className={`p-3 border rounded-lg mr-4 ${isDarkMode ? 'bg-[#27384a] border-gray-600' : 'bg-white border-gray-200'}`}>
+              <card.icon size={24} className={isDarkMode ? 'text-blue-400' : 'text-blue-600'} />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-1">{card.title}</h3>
-              <p className="text-sm text-gray-500">{card.description}</p>
+              <h3 className={`text-lg font-semibold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{card.title}</h3>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{card.description}</p>
             </div>
           </div>
         ))}
@@ -217,37 +219,37 @@ const Home = () => {
       {/* UPCOMING APPOINTMENTS */}
       <section className="mb-12">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-semibold text-gray-800">Upcoming Appointments</h2>
-          <button className="flex items-center text-blue-600 text-sm font-medium hover:text-blue-700 transition">
+          <h2 className={`text-2xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Upcoming Appointments</h2>
+          <button className={`flex items-center text-sm font-medium transition ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}>
             View All
             <ExternalLink size={16} className="ml-1" />
           </button>
         </div>
         
-        <div className="divide-y divide-gray-100">
+        <div className={`divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-100'}`}>
           {appointments.map((appointment, index) => (
-            <div key={index} className="flex items-center justify-between p-4 mb-4 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div key={index} className={`flex items-center justify-between p-4 mb-4 rounded-xl shadow-sm border ${isDarkMode ? 'bg-[#1E2A38] border-gray-700' : 'bg-white border-gray-200'}`}>
               <div className="flex items-start space-x-4">
-                <Wrench size={24} className="text-blue-500 flex-shrink-0" />
+                <Wrench size={24} className={`flex-shrink-0 ${isDarkMode ? 'text-blue-400' : 'text-blue-500'}`} />
                 <div>
-                  <h4 className="text-base font-semibold text-gray-800">{appointment.service}</h4>
-                  <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                  <h4 className={`text-base font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{appointment.service}</h4>
+                  <div className={`flex items-center space-x-4 text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                     <div className="flex items-center">
-                      <Calendar size={16} className="mr-1 text-gray-400" />
+                      <Calendar size={16} className={`mr-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
                       <span>{appointment.date}</span>
                     </div>
                     <div className="flex items-center">
-                      <Clock size={16} className="mr-1 text-gray-400" />
+                      <Clock size={16} className={`mr-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
                       <span>{appointment.time}</span>
                     </div>
                   </div>
                 </div>
               </div>
               <div className="text-right">
-                <span className={`px-3 py-1 text-xs font-semibold rounded-full uppercase ${appointment.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                <span className={`px-3 py-1 text-xs font-semibold rounded-full uppercase ${appointment.status === 'confirmed' ? (isDarkMode ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-700') : (isDarkMode ? 'bg-yellow-900/40 text-yellow-300' : 'bg-yellow-100 text-yellow-700')}`}>
                   {appointment.status}
                 </span>
-                <p className="text-sm text-gray-600 mt-1">with {appointment.mechanic}</p>
+                <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>with {appointment.mechanic}</p>
               </div>
             </div>
           ))}
@@ -256,17 +258,17 @@ const Home = () => {
 
       {/* POPULAR SERVICES */}
       <section className="mb-12">
-        <h2 className="text-xl font-semibold text-gray-800 mb-6">Popular Services</h2>
+        <h2 className={`text-xl font-semibold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Popular Services</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
           {services.map((service, index) => (
-            <ServiceCard key={index} {...service} />
+            <ServiceCard key={index} {...service} isDarkMode={isDarkMode} />
           ))}
         </div>
       </section>
 
       {/* VISIT OUR LOCATION */}
       <section className="max-w-4xl">
-        <LocationCard address={locationInfo.address} hours={locationInfo.hours} />
+        <LocationCard address={locationInfo.address} hours={locationInfo.hours} isDarkMode={isDarkMode} />
       </section>
 
       {/* MODAL */}

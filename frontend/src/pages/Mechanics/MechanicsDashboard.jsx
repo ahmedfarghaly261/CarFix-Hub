@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { JobDetailsModal } from "../../components/shared";
+import { useMechanicsTheme } from "../../context/MechanicsThemeContext";
 
 export default function Dashboard() {
   const [selectedJob, setSelectedJob] = useState(null);
+  const { isDarkMode } = useMechanicsTheme();
 
   const requests = [
     {
@@ -51,7 +53,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="pt-24 px-6 max-w-7xl mx-auto">
+    <div className={`pt-6 px-6 max-w-7xl mx-auto transition-colors duration-300 ${isDarkMode ? 'bg-[#101828]' : 'bg-gray-50'}`}>
       {/* Welcome Banner */}
       <div className="bg-blue-600 text-white rounded-xl px-6 py-5 mb-6">
         <h2 className="text-xl font-semibold">Welcome back, Mike Johnson!</h2>
@@ -60,41 +62,41 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-4">
-          <p className="text-gray-500">Total Requests</p>
-          <h3 className="text-2xl font-bold">5</h3>
+        <div className={`rounded-lg shadow p-4 transition-colors duration-300 ${isDarkMode ? 'bg-[#1E2A38] text-gray-300' : 'bg-white text-gray-700'}`}>
+          <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Total Requests</p>
+          <h3 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>5</h3>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <p className="text-gray-500">Pending</p>
-          <h3 className="text-2xl font-bold">2</h3>
+        <div className={`rounded-lg shadow p-4 transition-colors duration-300 ${isDarkMode ? 'bg-[#1E2A38] text-gray-300' : 'bg-white text-gray-700'}`}>
+          <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Pending</p>
+          <h3 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>2</h3>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <p className="text-gray-500">In Progress</p>
-          <h3 className="text-2xl font-bold">1</h3>
+        <div className={`rounded-lg shadow p-4 transition-colors duration-300 ${isDarkMode ? 'bg-[#1E2A38] text-gray-300' : 'bg-white text-gray-700'}`}>
+          <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>In Progress</p>
+          <h3 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>1</h3>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <p className="text-gray-500">Completed</p>
-          <h3 className="text-2xl font-bold">2</h3>
+        <div className={`rounded-lg shadow p-4 transition-colors duration-300 ${isDarkMode ? 'bg-[#1E2A38] text-gray-300' : 'bg-white text-gray-700'}`}>
+          <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Completed</p>
+          <h3 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>2</h3>
         </div>
       </div>
 
       {/* Requests List */}
-      <h3 className="text-xl font-semibold mb-4">All Requests</h3>
+      <h3 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>All Requests</h3>
 
       {/* Request Cards */}
       {requests.map((request) => (
-        <div key={request.id} className="bg-white rounded-lg shadow p-5 mb-4">
+        <div key={request.id} className={`rounded-lg shadow p-5 mb-4 transition-colors duration-300 ${isDarkMode ? 'bg-[#1E2A38] border border-gray-700' : 'bg-white border border-gray-200'}`}>
           <div className="flex justify-between">
-            <div>
-              <h4 className="text-lg font-semibold">{request.title}</h4>
-              <p className="text-gray-500">{request.customer} • {request.car} • {request.plate}</p>
-              <p className="text-sm mt-2">
+            <div className="flex-1">
+              <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{request.title}</h4>
+              <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>{request.customer} • {request.car} • {request.plate}</p>
+              <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 {request.description}
               </p>
-              <p className="text-gray-500 text-sm mt-2">{request.date} • {request.time} • Est. {request.duration}</p>
+              <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{request.date} • {request.time} • Est. {request.duration}</p>
               <div className="flex gap-2 mt-3">
                 <button 
-                  className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200 transition"
+                  className={`px-4 py-2 rounded hover:opacity-80 transition ${isDarkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}
                   onClick={() => setSelectedJob(request)}
                 >
                   View Details
@@ -107,18 +109,18 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-col items-end gap-2 ml-4">
               <span className={`px-2 py-1 rounded text-sm font-medium ${
-                request.priority === 'high' ? 'bg-red-200 text-red-600' :
-                request.priority === 'medium' ? 'bg-orange-200 text-orange-600' :
-                'bg-green-200 text-green-600'
+                request.priority === 'high' ? (isDarkMode ? 'bg-red-900 text-red-200' : 'bg-red-200 text-red-600') :
+                request.priority === 'medium' ? (isDarkMode ? 'bg-orange-900 text-orange-200' : 'bg-orange-200 text-orange-600') :
+                isDarkMode ? 'bg-green-900 text-green-200' : 'bg-green-200 text-green-600'
               }`}>
                 {request.priority} priority
               </span>
               <span className={`px-2 py-1 rounded text-sm font-medium ${
-                request.status === 'completed' ? 'bg-green-200 text-green-700' :
-                request.status === 'in-progress' ? 'bg-yellow-200 text-yellow-700' :
-                'bg-blue-200 text-blue-700'
+                request.status === 'completed' ? (isDarkMode ? 'bg-green-900 text-green-200' : 'bg-green-200 text-green-700') :
+                request.status === 'in-progress' ? (isDarkMode ? 'bg-yellow-900 text-yellow-200' : 'bg-yellow-200 text-yellow-700') :
+                isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-200 text-blue-700'
               }`}>
                 {request.status}
               </span>

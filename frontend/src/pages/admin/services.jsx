@@ -6,11 +6,12 @@ import {
   Trash2,
   X
 } from 'lucide-react';
-
+import { useAdminTheme } from '../../context/AdminThemeContext';
 import { getServices, createService, updateService, deleteService } from '../../services/adminService';
 
 // --- Single ServicesPage Component ---
 export default function ServicesPage() {
+  const { isDarkMode } = useAdminTheme();
   // State to manage modal visibility
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -92,7 +93,13 @@ export default function ServicesPage() {
     e.preventDefault();
     
     if (!formData.name || !formData.price || !formData.duration) {
-      alert('Please fill in all required fields');
+      alert('Please fill in all required fields (Name, Price, Duration)');
+      return;
+    }
+
+    // Validate price is a positive number
+    if (isNaN(formData.price) || parseFloat(formData.price) <= 0) {
+      alert('Please enter a valid price (must be greater than 0)');
       return;
     }
 
@@ -112,7 +119,8 @@ export default function ServicesPage() {
       fetchServices();
     } catch (err) {
       console.error('Failed to save service', err);
-      alert(err.response?.data?.message || 'Failed to save service');
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to save service';
+      alert(`Error: ${errorMessage}`);
     }
   };
 
@@ -136,13 +144,13 @@ export default function ServicesPage() {
 
   return (
     // Main container with light gray background
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className={`p-6 min-h-screen transition-colors ${isDarkMode ? 'bg-[#101828]' : 'bg-gray-50'}`}>
       
       {/* --- Main Content Area --- */}
       
         {/* Page Header */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             Services Management
           </h1>
           {/* Updated button to open the modal */}
@@ -158,20 +166,20 @@ export default function ServicesPage() {
         {/* Search Bar */}
         <div className="mb-6">
           <div className="relative">
-            <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+            <Search className={`absolute left-3 top-3 h-5 w-5 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
             <input
               type="text"
               placeholder="Search services..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isDarkMode ? 'bg-[#1E2A38] text-white border-gray-700' : 'bg-white text-gray-900 border-gray-300'}`}
             />
           </div>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          <div className={`mb-6 p-4 border rounded-lg ${isDarkMode ? 'bg-red-900/30 border-red-700 text-red-300' : 'bg-red-100 border-red-400 text-red-700'}`}>
             {error}
           </div>
         )}
@@ -179,16 +187,16 @@ export default function ServicesPage() {
         {/* --- Services Grid --- */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {loading ? (
-            <div className="col-span-3 text-center py-8 text-gray-500">Loading services...</div>
+            <div className={`col-span-3 text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading services...</div>
           ) : filteredServices.length === 0 ? (
-            <div className="col-span-3 text-center py-8 text-gray-500">No services found</div>
+            <div className={`col-span-3 text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>No services found</div>
           ) : (
             filteredServices.map((service) => (
             // --- Service Card ---
-            <div key={service._id} className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden hover:shadow-md transition-shadow">
+            <div key={service._id} className={`rounded-lg shadow-sm border flex flex-col overflow-hidden hover:shadow-md transition-shadow ${isDarkMode ? 'bg-[#1E2A38] border-gray-700' : 'bg-white border-gray-200'}`}>
               {/* Card Body */}
               <div className="p-6 flex-grow">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">{service.name}</h3>
+                <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{service.name}</h3>
                 <div className="flex justify-between mb-4">
                   <div>
                     <div className="text-sm text-gray-500">Price</div>
@@ -224,6 +232,7 @@ export default function ServicesPage() {
                     </div>
                     )))}
                     </div>
+
 
                     {isModalOpen && (
         // Modal Backdrop

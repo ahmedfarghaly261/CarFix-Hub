@@ -109,6 +109,16 @@ router.post('/mechanics', adminOnly, async (req, res) => {
       role: 'mechanic'
     });
     const newMechanic = await mechanic.save();
+    
+    // If workshopId is provided, add mechanic to workshop's mechanics array
+    if (req.body.workshopId) {
+      await Workshop.findByIdAndUpdate(
+        req.body.workshopId,
+        { $addToSet: { mechanics: newMechanic._id } },
+        { new: true }
+      );
+    }
+    
     res.status(201).json(newMechanic);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -117,9 +127,41 @@ router.post('/mechanics', adminOnly, async (req, res) => {
 
 router.put('/mechanics/:id', adminOnly, async (req, res) => {
   try {
-    const mechanic = await User.findByIdAndUpdate(req.params.id, req.body, { new: true }).select('-password');
+    const mechanic = await User.findById(req.params.id);
     if (!mechanic) return res.status(404).json({ message: 'Mechanic not found' });
-    res.json(mechanic);
+    
+    const oldWorkshopId = mechanic.workshopId;
+    const newWorkshopId = req.body.workshopId;
+    
+    // If workshop is being changed, update both workshops' mechanics arrays
+    if (oldWorkshopId && newWorkshopId && oldWorkshopId.toString() !== newWorkshopId.toString()) {
+      // Remove from old workshop
+      await Workshop.findByIdAndUpdate(
+        oldWorkshopId,
+        { $pull: { mechanics: mechanic._id } }
+      );
+      // Add to new workshop
+      await Workshop.findByIdAndUpdate(
+        newWorkshopId,
+        { $addToSet: { mechanics: mechanic._id } }
+      );
+    } else if (!oldWorkshopId && newWorkshopId) {
+      // Mechanic didn't have a workshop, add to new one
+      await Workshop.findByIdAndUpdate(
+        newWorkshopId,
+        { $addToSet: { mechanics: mechanic._id } }
+      );
+    } else if (oldWorkshopId && !newWorkshopId) {
+      // Removing workshop from mechanic
+      await Workshop.findByIdAndUpdate(
+        oldWorkshopId,
+        { $pull: { mechanics: mechanic._id } }
+      );
+    }
+    
+    // Update mechanic record
+    const updatedMechanic = await User.findByIdAndUpdate(req.params.id, req.body, { new: true }).select('-password');
+    res.json(updatedMechanic);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -129,9 +171,18 @@ router.delete('/mechanics/:id', adminOnly, async (req, res) => {
   try {
     const mechanic = await User.findByIdAndDelete(req.params.id);
     if (!mechanic) return res.status(404).json({ message: 'Mechanic not found' });
+    
+    // Remove mechanic from workshop if assigned
+    if (mechanic.workshopId) {
+      await Workshop.findByIdAndUpdate(
+        mechanic.workshopId,
+        { $pull: { mechanics: mechanic._id } }
+      );
+    }
+    
     res.json({ message: 'Mechanic deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(400).json({ message: error.message });
   }
 });
 
@@ -194,21 +245,47 @@ router.get('/services/:id', async (req, res) => {
 
 router.post('/services', adminOnly, async (req, res) => {
   try {
+    // Validate required fields
+    if (!req.body.name || !req.body.price || !req.body.duration) {
+      return res.status(400).json({ message: 'Name, price, and duration are required' });
+    }
+
+    // Check if service with same name already exists
+    const existingService = await Service.findOne({ name: req.body.name });
+    if (existingService) {
+      return res.status(400).json({ message: `Service with name "${req.body.name}" already exists` });
+    }
+
     const service = new Service(req.body);
     const newService = await service.save();
     res.status(201).json(newService);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Service creation error:', error);
+    res.status(400).json({ message: error.message || 'Failed to save service' });
   }
 });
 
 router.put('/services/:id', adminOnly, async (req, res) => {
   try {
-    const service = await Service.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!service) return res.status(404).json({ message: 'Service not found' });
+    // Check if service exists
+    const existingService = await Service.findById(req.params.id);
+    if (!existingService) {
+      return res.status(404).json({ message: 'Service not found' });
+    }
+
+    // If name is being updated, check for duplicates
+    if (req.body.name && req.body.name !== existingService.name) {
+      const duplicateService = await Service.findOne({ name: req.body.name });
+      if (duplicateService) {
+        return res.status(400).json({ message: `Service with name "${req.body.name}" already exists` });
+      }
+    }
+
+    const service = await Service.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     res.json(service);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Service update error:', error);
+    res.status(400).json({ message: error.message || 'Failed to update service' });
   }
 });
 

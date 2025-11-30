@@ -7,6 +7,7 @@ import {
   Flag,
   Trash2
 } from 'lucide-react';
+import { useAdminTheme } from '../../context/AdminThemeContext';
 
 // --- Mock Data ---
 const reviewsData = [
@@ -26,14 +27,15 @@ const sentimentClasses = {
 
 // --- Single ReviewsPage Component ---
 export default function ReviewsPage() {
+  const { isDarkMode } = useAdminTheme();
   const maxRating = 5; // Define max rating for stars
 
   return (
     // Main container with light gray background
-    <div className="min-h-screen bg-slate-100">
+    <div className={`min-h-screen transition-colors ${isDarkMode ? 'bg-[#101828]' : 'bg-slate-100'}`}>
       
       {/* --- App Header --- */}
-      <header className="bg-white border-b border-slate-200">
+      <header className={`border-b transition-colors ${isDarkMode ? 'bg-[#1E2A38] border-gray-700' : 'bg-white border-slate-200'}`}>
         <div className="mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             

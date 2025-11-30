@@ -1,4 +1,7 @@
+import { useMechanicsTheme } from '../../context/MechanicsThemeContext';
+
 export default function MechanicsReviewsPage() {
+  const { isDarkMode } = useMechanicsTheme();
   const reviews = [
     {
       id: 1,
@@ -29,20 +32,20 @@ export default function MechanicsReviewsPage() {
   const avgRating = (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1);
 
   return (
-    <div className="pt-6 px-6 max-w-6xl">
+    <div className={`pt-6 px-6 max-w-6xl transition-colors duration-300 ${isDarkMode ? 'bg-[#101828]' : 'bg-gray-50'}`}>
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white mb-2">Customer Reviews</h1>
-        <p className="text-gray-400">Feedback from your completed jobs</p>
+        <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Customer Reviews</h1>
+        <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Feedback from your completed jobs</p>
       </div>
 
       {/* Overall Rating */}
-      <div className="bg-[#1E2A38] rounded-lg p-6 border border-gray-700 mb-6">
+      <div className={`rounded-lg p-6 border mb-6 transition-colors duration-300 ${isDarkMode ? 'bg-[#1E2A38] border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-gray-400 mb-2">Overall Rating</p>
-            <h3 className="text-4xl font-bold text-white">{avgRating} ⭐</h3>
-            <p className="text-gray-500 text-sm mt-1">Based on {reviews.length} reviews</p>
+            <p className={`mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Overall Rating</p>
+            <h3 className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{avgRating} ⭐</h3>
+            <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>Based on {reviews.length} reviews</p>
           </div>
         </div>
       </div>
@@ -50,16 +53,16 @@ export default function MechanicsReviewsPage() {
       {/* Reviews List */}
       <div className="space-y-4">
         {reviews.map((review) => (
-          <div key={review.id} className="bg-[#1E2A38] rounded-lg shadow p-5 border border-gray-700">
+          <div key={review.id} className={`rounded-lg shadow p-5 border transition-colors duration-300 ${isDarkMode ? 'bg-[#1E2A38] border-gray-700' : 'bg-white border-gray-200'}`}>
             <div className="flex justify-between items-start mb-3">
               <div>
-                <h3 className="text-lg font-semibold text-white">{review.customer}</h3>
-                <p className="text-gray-400 text-sm">{review.service}</p>
+                <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{review.customer}</h3>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{review.service}</p>
               </div>
-              <span className="text-yellow-400 text-lg">{'⭐'.repeat(review.rating)}</span>
+              <span className={isDarkMode ? 'text-yellow-400' : 'text-yellow-500'}>{'⭐'.repeat(review.rating)}</span>
             </div>
-            <p className="text-gray-300 mb-3">{review.comment}</p>
-            <p className="text-gray-500 text-sm">{review.date}</p>
+            <p className={`mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{review.comment}</p>
+            <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>{review.date}</p>
           </div>
         ))}
       </div>
