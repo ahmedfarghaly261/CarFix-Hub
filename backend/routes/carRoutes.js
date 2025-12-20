@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Car = require('../models/car');
 const User = require('../models/user');
+const mongoose = require('mongoose');
 
 // Middleware to check if user owns the car or is admin
 const checkCarOwnership = async (req, res, next) => {
@@ -23,7 +24,14 @@ const checkCarOwnership = async (req, res, next) => {
 // Get all cars for the logged-in user
 router.get('/', async (req, res) => {
   try {
-    const cars = await Car.find({ userId: req.user._id });
+    let query = { userId: req.user._id };
+    
+    // Allow admin to query by userId parameter
+    if (req.user.role === 'admin' && req.query.userId) {
+      query = { userId: req.query.userId };
+    }
+    
+    const cars = await Car.find(query);
     res.json(cars);
   } catch (error) {
     res.status(500).json({ message: error.message });

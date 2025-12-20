@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { registerUser } from '../../../services/userService';
+import { Eye, EyeOff, Mail, Lock, User as UserIcon, ArrowRight, CheckCircle } from 'lucide-react';
 
 function SignIn() {
   const navigate = useNavigate();
@@ -12,6 +13,8 @@ function SignIn() {
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -50,222 +53,203 @@ function SignIn() {
   };
 
   return (
-    <>
-      <nav className=" py-4 fixed w-full z-10 top-0 left-0">
-        <div className="container mx-auto flex justify-center items-center">
-          <a href="#">
-            <img
-              className="w-[140px] object-cover h-16"
-              src="public/logo.png"
-              alt="Logo"
-            />
-          </a>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex flex-col">
+      {/* Navigation */}
+      <nav className="py-4 px-6 backdrop-blur-md bg-white/10 border-b border-white/20">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold text-white">CarFix</h1>
+          </div>
         </div>
       </nav>
-<div className="relative">
-  {/* Background Car Banner */}
-  <img
-    src="public/banner.jpg"
-    className="absolute inset-0 object-cover w-full h-full"
-    alt="Car Banner"
-  />
 
-  {/* Overlay */}
-  <div className="relative bg-opacity-80 ">
-    <svg
-      className="absolute inset-x-0 bottom-0 text-white"
-      viewBox="0 0 1160 163"
-    >
-      <path
-        fill="currentColor"
-        d="M-164 13L-104 39.7C-44 66 76 120 196 141C316 162 436 152 556 119.7C676 88 796 34 916 13C1036 -8 1156 2 1216 7.7L1276 13V162.5H1216C1156 162.5 1036 162.5 916 162.5C796 162.5 676 162.5 556 162.5C436 162.5 316 162.5 196 162.5C76 162.5 -44 162.5 -104 162.5H-164V13Z"
-      />
-    </svg>
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">
+          {/* Form Card */}
+          <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl p-8 sm:p-10">
+            {/* Header */}
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-white mb-2">Join CarFix</h2>
+              <p className="text-blue-100">Create your account to get started</p>
+            </div>
 
-    {/* Content */}
-    <div className="relative px-4 py-16 mx-auto overflow-hidden sm:max-w-xl md:max-w-full lg:max-w-screen-xl md:px-24 lg:px-8 lg:py-20">
-      <div className="flex flex-col items-center justify-between xl:flex-row">
-        {/* Left Side Text */}
-        <div className="w-full max-w-xl mb-12 xl:mb-0 xl:pr-16 xl:w-7/12">
-          <h2 className="max-w-lg mb-6 font-sans text-3xl font-bold tracking-tight text-white sm:text-4xl sm:leading-none">
-            Drive your passion <br className="hidden md:block" />
-            with the latest car updates 🚗
-          </h2>
-          <p className="max-w-xl mb-4 text-base text-gray-200 md:text-lg">
-            Stay updated with car trends, reviews, and exclusive offers. Join our
-            community today.
-          </p>
-          <a
-            href="/"
-            aria-label=""
-            className="inline-flex items-center font-semibold tracking-wider transition-colors duration-200 text-[#eb2224] hover:text-[#c72023]"
-          >
-            Learn more
-            <svg
-              className="inline-block w-3 ml-2"
-              fill="currentColor"
-              viewBox="0 0 12 12"
-            >
-              <path d="M9.707,5.293l-5-5A1,1,0,0,0,3.293,1.707L7.586,6,3.293,10.293a1,1,0,1,0,1.414,1.414l5-5A1,1,0,0,0,9.707,5.293Z" />
-            </svg>
-          </a>
-        </div>
-
-        {/* Right Side Form */}
-        <div className="w-full max-w-xl xl:px-8 xl:w-5/12">
-          <div className="bg-white rounded-lg shadow-2xl p-8 sm:p-10">
-            <h3 className="mb-6 text-2xl font-bold text-center text-gray-800">
-              Sign up
-            </h3>
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              {/* First Name */}
-              <div>
-                <label
-                  htmlFor="firstName"
-                  className="block mb-1 font-medium text-gray-700"
-                >
-                   Full Name
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              {/* Full Name Input */}
+              <div className="relative">
+                <label htmlFor="firstName" className="block text-sm font-medium text-blue-100 mb-2">
+                  Full Name
                 </label>
-                <input
-                  placeholder="John"
-                  required
-                  type="text"
-                  className="w-full h-12 px-4 border border-gray-300 rounded-md shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200"
-                  id="firstName"
-                  name="firstName"
-                  value={form.firstName}
-                  onChange={handleChange}
-                />
+                <div className="relative">
+                  <UserIcon className="absolute left-3 top-3.5 w-5 h-5 text-blue-300" />
+                  <input
+                    id="firstName"
+                    type="text"
+                    placeholder="John Doe"
+                    required
+                    className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-blue-200/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    name="firstName"
+                    value={form.firstName}
+                    onChange={handleChange}
+                  />
+                </div>
               </div>
 
-           
-
-              {/* Email */}
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block mb-1 font-medium text-gray-700"
-                >
-                  E-mail
+              {/* Email Input */}
+              <div className="relative">
+                <label htmlFor="email" className="block text-sm font-medium text-blue-100 mb-2">
+                  Email Address
                 </label>
-                <input
-                  placeholder="john.doe@example.org"
-                  required
-                  type="email"
-                  className="w-full h-12 px-4 border border-gray-300 rounded-md shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200"
-                  id="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                />
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3.5 w-5 h-5 text-blue-300" />
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    required
+                    className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-blue-200/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                  />
+                </div>
               </div>
 
-              {/* Password */}
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block mb-1 font-medium text-gray-700"
-                >
+              {/* Password Input */}
+              <div className="relative">
+                <label htmlFor="password" className="block text-sm font-medium text-blue-100 mb-2">
                   Password
                 </label>
-                <input
-                  placeholder="••••••••"
-                  required
-                  type="password"
-                  className="w-full h-12 px-4 border border-gray-300 rounded-md shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200"
-                  id="password"
-                  name="password"
-                  value={form.password}
-                  onChange={handleChange}
-                />
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3.5 w-5 h-5 text-blue-300" />
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    required
+                    className="w-full pl-10 pr-10 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-blue-200/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    name="password"
+                    value={form.password}
+                    onChange={handleChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3.5 text-blue-300 hover:text-blue-200"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                <p className="text-xs text-blue-200/70 mt-1">At least 6 characters</p>
               </div>
 
-              {/* Confirm Password */}
-              <div>
-                <label
-                  htmlFor="confirmPassword"
-                  className="block mb-1 font-medium text-gray-700"
-                >
+              {/* Confirm Password Input */}
+              <div className="relative">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-blue-100 mb-2">
                   Confirm Password
                 </label>
-                <input
-                  placeholder="••••••••"
-                  required
-                  type="password"
-                  className="w-full h-12 px-4 border border-gray-300 rounded-md shadow-sm focus:border-teal-500 focus:ring focus:ring-teal-200"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={form.confirmPassword}
-                  onChange={handleChange}
-                />
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3.5 w-5 h-5 text-blue-300" />
+                  <input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    required
+                    className="w-full pl-10 pr-10 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-blue-200/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    name="confirmPassword"
+                    value={form.confirmPassword}
+                    onChange={handleChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-3.5 text-blue-300 hover:text-blue-200"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
 
-              {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded">{error}</div>}
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 flex items-start space-x-2">
+                  <div className="w-5 h-5 rounded-full bg-red-500 flex-shrink-0 flex items-center justify-center mt-0.5">
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 5.414L16.586 4 10 10.586 3.414 4 2 5.414 8.586 12 2 18.586 3.414 20 10 13.414 16.586 20 18 18.586 12.414 12 18 5.414z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-red-200 text-sm">{error}</span>
+                </div>
+              )}
 
               {/* Submit Button */}
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full h-12 px-6 font-medium text-white rounded-md shadow-md bg-[#eb2224] hover:bg-[#c72023] focus:ring disabled:bg-gray-400"
-                >
-                  {loading ? 'Signing up...' : 'Sign Up'}
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 text-center">
-                We respect your privacy. Unsubscribe at any time.
-              </p>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold rounded-lg transition duration-200 flex items-center justify-center space-x-2 mt-6"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span>Creating account...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Create Account</span>
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
             </form>
+
+            {/* Divider */}
+            <div className="my-6 flex items-center space-x-3">
+              <div className="flex-1 h-px bg-white/20"></div>
+              <span className="text-white/60 text-sm">OR</span>
+              <div className="flex-1 h-px bg-white/20"></div>
+            </div>
+
+            {/* Login Link */}
+            <p className="text-center text-blue-100">
+              Already have an account?{' '}
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="font-semibold text-blue-300 hover:text-blue-200 transition"
+              >
+                Sign in
+              </button>
+            </p>
+
+            {/* Footer Note */}
+            <p className="text-xs text-white/50 text-center mt-6">
+              By creating an account, you agree to our Terms of Service and Privacy Policy
+            </p>
+          </div>
+
+          {/* Benefits */}
+          <div className="mt-12 space-y-3">
+            <div className="flex items-start space-x-3">
+              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+              <p className="text-blue-100 text-sm">Quick and easy registration process</p>
+            </div>
+            <div className="flex items-start space-x-3">
+              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+              <p className="text-blue-100 text-sm">Access to exclusive mechanic services</p>
+            </div>
+            <div className="flex items-start space-x-3">
+              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+              <p className="text-blue-100 text-sm">Secure and encrypted data protection</p>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
-
-
-      <footer class="rounded-lg shadow-sm text-white  m-4 bg-black">
-        <div class="w-full max-w-screen-xl mx-auto p-4 md:py-8">
-          <div class="sm:flex sm:items-center sm:justify-between">
-            <img
-              className="w-[140px] object-cover h-16"
-              src="public/logo.png"
-              alt="Logo"
-            />
-            <ul class="flex flex-wrap items-center mb-6 text-sm font-medium text-gray-500 sm:mb-0 dark:text-gray-400">
-              <li>
-                <a href="#" class="hover:underline me-4 md:me-6">
-                  About
-                </a>
-              </li>
-              <li>
-                <a href="#" class="hover:underline me-4 md:me-6">
-                  Privacy Policy
-                </a>
-              </li>
-              <li>
-                <a href="#" class="hover:underline me-4 md:me-6">
-                  Licensing
-                </a>
-              </li>
-              <li>
-                <a href="#" class="hover:underline">
-                  Contact
-                </a>
-              </li>
-            </ul>
-          </div>
-          <hr class="my-6 border-gray-200 sm:mx-auto dark:border-gray-700 lg:my-8" />
-          <span class="block text-sm text-gray-500 sm:text-center dark:text-gray-400">
-            © 2025{" "}
-            <a href="https://flowbite.com/" class="hover:underline">
-              Ahmed Farghaly
-            </a>
-            . All Rights Reserved.
-          </span>
-        </div>
-      </footer>
-    </>
   );
 }
 export default SignIn;

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useMechanicsTheme } from '../../context/MechanicsThemeContext';
 import { getMechanicJobs, startJob } from '../../services/mechanicService';
+import API from '../../services/api';
 import { X } from 'lucide-react';
 
 export default function MechanicsJobsPage() {
@@ -13,16 +14,35 @@ export default function MechanicsJobsPage() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportText, setReportText] = useState('');
+  const [reportLoading, setReportLoading] = useState(false);
 
   useEffect(() => {
     const fetchJobs = async () => {
       try {
         setLoading(true);
-        const response = await getMechanicJobs();
+        console.log('📍 Fetching jobs for mechanic:', {
+          id: user?._id,
+          name: user?.name,
+          workshopId: user?.workshopId
+        });
         
-        // Filter for assigned/in-progress/pending appointments
+        const response = await getMechanicJobs();
+        console.log('📦 API Response - Total jobs returned:', response.data?.length);
+        
+        if (response.data && response.data.length > 0) {
+          console.log('📋 Job details:');
+          response.data.forEach((job, idx) => {
+            console.log(`  ${idx + 1}. ${job.title} (${job.status}) - assignedTo: ${job.assignedTo}, workshop: ${job.workshopId}`);
+          });
+        } else {
+          console.log('⚠️ No jobs returned from API');
+        }
+        
+        // Filter for all non-completed jobs (pending, assigned, in-progress)
         const filteredJobs = response.data
-          .filter(job => ['assigned', 'in-progress', 'pending'].includes(job.status))
+          .filter(job => !['completed', 'cancelled'].includes(job.status))
           .map(job => ({
             id: job._id,
             title: job.title,
@@ -38,10 +58,11 @@ export default function MechanicsJobsPage() {
             serviceType: job.serviceType || 'General Repair'
           }));
         
+        console.log('✅ After filtering:', filteredJobs.length, 'jobs');
         setJobs(filteredJobs);
         setError(null);
       } catch (err) {
-        console.error('Error fetching jobs:', err);
+        console.error('❌ Error fetching jobs:', err);
         setError('Failed to load jobs');
         setJobs([]);
       } finally {
@@ -77,6 +98,7 @@ export default function MechanicsJobsPage() {
       switch(status) {
         case 'completed': return 'bg-green-900 text-green-200';
         case 'in-progress': return 'bg-yellow-900 text-yellow-200';
+        case 'assigned': return 'bg-blue-900 text-blue-200';
         case 'pending': return 'bg-blue-900 text-blue-200';
         default: return 'bg-gray-700 text-gray-300';
       }
@@ -84,6 +106,7 @@ export default function MechanicsJobsPage() {
       switch(status) {
         case 'completed': return 'bg-green-200 text-green-700';
         case 'in-progress': return 'bg-yellow-200 text-yellow-700';
+        case 'assigned': return 'bg-blue-200 text-blue-700';
         case 'pending': return 'bg-blue-200 text-blue-700';
         default: return 'bg-gray-200 text-gray-600';
       }
@@ -93,6 +116,69 @@ export default function MechanicsJobsPage() {
   const handleViewDetails = (job) => {
     setSelectedJob(job);
     setIsModalOpen(true);
+  };
+
+  const handleAddReport = () => {
+    if (!selectedJob) return;
+    setIsReportModalOpen(true);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!reportText.trim()) {
+      alert('Please enter a report');
+      return;
+    }
+
+    setReportLoading(true);
+    try {
+      // Update job with report
+      await API.put(`/mechanics/jobs/${selectedJob.id}/update`, {
+        reportDetails: reportText
+      });
+      
+      // Update local state
+      setJobs(jobs.map(job =>
+        job.id === selectedJob.id
+          ? { ...job, reportDetails: reportText }
+          : job
+      ));
+      
+      setReportText('');
+      setIsReportModalOpen(false);
+      alert('Report added successfully!');
+    } catch (err) {
+      console.error('Error adding report:', err);
+      alert(err.response?.data?.message || 'Failed to add report');
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const handleCompleteJob = async () => {
+    if (!selectedJob) return;
+
+    if (!confirm('Are you sure you want to mark this job as completed?')) return;
+
+    setModalLoading(true);
+    try {
+      await API.put(`/mechanics/jobs/${selectedJob.id}/complete`, {});
+      
+      // Update local state - remove from jobs list or change status
+      setJobs(jobs.map(job =>
+        job.id === selectedJob.id
+          ? { ...job, status: 'completed' }
+          : job
+      ).filter(job => job.status !== 'completed'));
+      
+      setIsModalOpen(false);
+      setSelectedJob(null);
+      alert('Job marked as completed!');
+    } catch (err) {
+      console.error('Error completing job:', err);
+      alert(err.response?.data?.message || 'Failed to complete job');
+    } finally {
+      setModalLoading(false);
+    }
   };
 
   const handleJobChoice = async (choice) => {
@@ -134,9 +220,25 @@ export default function MechanicsJobsPage() {
   return (
     <div className={`pt-6 px-6 max-w-6xl transition-colors duration-300 ${isDarkMode ? 'bg-[#101828]' : 'bg-gray-50'}`}>
       {/* Header */}
-      <div className="mb-6">
-        <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>My Jobs</h1>
-        <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Manage and track all your repair jobs</p>
+      <div className="mb-6 flex justify-between items-start">
+        <div>
+          <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>My Jobs</h1>
+          <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Manage and track all your repair jobs</p>
+        </div>
+        <button
+          onClick={async () => {
+            console.log('=== SIMPLE DEBUG ===');
+            try {
+              const response = await API.get('/mechanics/debug/simple');
+              console.log('Simple Debug:', JSON.stringify(response.data, null, 2));
+            } catch (err) {
+              console.error('Debug error:', err.message);
+            }
+          }}
+          className={`px-3 py-1 text-xs rounded ${isDarkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
+        >
+          🔍 Debug
+        </button>
       </div>
 
       {/* Loading State */}
@@ -178,9 +280,24 @@ export default function MechanicsJobsPage() {
                       View Details
                     </button>
                     {(job.status === 'in-progress' || job.status === 'assigned') && (
-                      <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm">
-                        Mark as Completed
-                      </button>
+                      <>
+                        <button 
+                          onClick={() => {
+                            setSelectedJob(job);
+                            handleAddReport();
+                          }}
+                          className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition text-sm">
+                          Add Report
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setSelectedJob(job);
+                            handleCompleteJob();
+                          }}
+                          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm">
+                          Complete
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -267,12 +384,101 @@ export default function MechanicsJobsPage() {
               >
                 Close
               </button>
-              <button
-                onClick={() => handleJobChoice('work-now')}
-                disabled={modalLoading}
-                className={`flex-1 px-4 py-2 rounded font-medium text-sm text-white transition ${modalLoading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} disabled:opacity-50`}
+              {selectedJob.status !== 'completed' && (
+                <>
+                  <button
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      handleAddReport();
+                    }}
+                    className="flex-1 px-4 py-2 rounded font-medium text-sm bg-orange-600 text-white hover:bg-orange-700 transition"
+                  >
+                    Add Report
+                  </button>
+                  <button
+                    onClick={handleCompleteJob}
+                    disabled={modalLoading}
+                    className={`flex-1 px-4 py-2 rounded font-medium text-sm text-white transition ${modalLoading ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
+                  >
+                    {modalLoading ? 'Completing...' : 'Complete Job'}
+                  </button>
+                </>
+              )}
+              {selectedJob.status === 'pending' && (
+                <button
+                  onClick={() => handleJobChoice('work-now')}
+                  disabled={modalLoading}
+                  className={`flex-1 px-4 py-2 rounded font-medium text-sm text-white transition ${modalLoading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} disabled:opacity-50`}
+                >
+                  {modalLoading ? 'Starting...' : 'Start Work'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Modal */}
+      {isReportModalOpen && selectedJob && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`rounded-lg shadow-xl max-w-md w-full transition-colors duration-300 ${isDarkMode ? 'bg-[#1E2A38]' : 'bg-white'}`}>
+            {/* Modal Header */}
+            <div className={`flex justify-between items-center p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Add Work Report</h2>
+              <button 
+                onClick={() => {
+                  setIsReportModalOpen(false);
+                  setReportText('');
+                }}
+                className={`p-1 rounded hover:opacity-70 transition ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}
               >
-                {modalLoading ? 'Starting...' : 'Start Work'}
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Job: {selectedJob.title}
+                </label>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Work Report *
+                </label>
+                <textarea
+                  value={reportText}
+                  onChange={(e) => setReportText(e.target.value)}
+                  placeholder="Describe the work done, issues found, parts replaced, etc..."
+                  className={`w-full px-4 py-3 rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isDarkMode 
+                      ? 'bg-[#27384a] border-gray-600 text-white placeholder-gray-500' 
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                  }`}
+                  rows="5"
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className={`flex gap-3 p-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <button
+                onClick={() => {
+                  setIsReportModalOpen(false);
+                  setReportText('');
+                }}
+                className={`flex-1 px-4 py-2 rounded font-medium text-sm transition ${isDarkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-200 text-gray-900 hover:bg-gray-300'}`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitReport}
+                disabled={reportLoading || !reportText.trim()}
+                className={`flex-1 px-4 py-2 rounded font-medium text-sm text-white transition ${reportLoading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} disabled:opacity-50`}
+              >
+                {reportLoading ? 'Saving...' : 'Save Report'}
               </button>
             </div>
           </div>

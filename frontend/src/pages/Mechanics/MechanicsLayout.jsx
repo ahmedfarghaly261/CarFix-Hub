@@ -1,6 +1,7 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
 import MechanicsSidebar from "./MechanicsSidebar";
+import MechanicsHeader from "./MechanicsHeader";
 import { useMechanicsTheme } from "../../context/MechanicsThemeContext";
 
 const MechanicsLayout = () => {
@@ -9,8 +10,11 @@ const MechanicsLayout = () => {
   return (
     <div className={`flex min-h-screen ${isDarkMode ? 'bg-[#101828]' : 'bg-gray-50'}`}>
       <MechanicsSidebar />
-      <div className="flex-1">
-        <Outlet />
+      <div className="flex flex-col flex-1">
+        <MechanicsHeader />
+        <div className="flex-1">
+          <Outlet />
+        </div>
       </div>
     </div>
   );

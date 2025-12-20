@@ -63,6 +63,9 @@ router.get('/', async (req, res) => {
     
     if (req.user.role === 'user') {
       query.userId = req.user._id;
+    } else if (req.user.role === 'admin' && req.query.userId) {
+      // Allow admin to query by userId parameter
+      query.userId = req.query.userId;
     } else if (req.user.role === 'mechanic') {
       // Show jobs assigned directly to them OR jobs from their workshop
       const orConditions = [];
@@ -82,11 +85,12 @@ router.get('/', async (req, res) => {
         query._id = { $in: [] };
       }
     }
-    // Admin can see all requests
+    // Admin can see all requests (if no userId parameter specified)
 
     const repairRequests = await RepairRequest.find(query)
       .populate('carId', 'make model year')
       .populate('userId', 'name email')
+      .populate('assignedTo', 'name')
       .populate('workshopId', 'name');
       
     res.json(repairRequests);
@@ -218,7 +222,7 @@ router.post('/:id/iterations', checkRepairRequestAuth, async (req, res) => {
 // Update repair request
 router.put('/:id', checkRepairRequestAuth, async (req, res) => {
   try {
-    const allowedUpdates = ['title', 'description', 'priority', 'status', 'estimatedCompletionDate'];
+    const allowedUpdates = ['title', 'description', 'priority', 'status', 'estimatedCompletionDate', 'assignedTo', 'workshopId'];
     allowedUpdates.forEach(update => {
       if (req.body[update] !== undefined) {
         req.repairRequest[update] = req.body[update];

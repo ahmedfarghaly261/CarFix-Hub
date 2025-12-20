@@ -14,6 +14,7 @@ import Login from "./pages/auth/login/logIn";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboardPage from "./pages/admin/dashboard";
 import UsersPage from "./pages/admin/users";
+import UserDetailPage from "./pages/admin/userDetail";
 import MechanicsPage from "./pages/admin/mechanics";
 import WorkshopsPage from "./pages/admin/workshops";
 import BookingsPage from "./pages/admin/bookings";
@@ -34,6 +35,9 @@ import Home from "./pages/user/home/home";
 import Profile from "./pages/user/profile/profile";
 import Shop from "./pages/user/shop/shop";
 import Appointments from "./pages/user/appointments/appointments";
+import CompletedRepairs from "./pages/user/completed-repairs/CompletedRepairs";
+import RepairDetails from "./pages/user/repairs/RepairDetails";
+import RepairHistory from "./pages/user/repair-history/RepairHistory";
 
 // Root router component that handles auth-based redirects
 function RootRouter() {
@@ -68,6 +72,7 @@ function RootRouter() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="users" element={<UsersPage />} />
+            <Route path="users/:userId" element={<UserDetailPage />} />
             <Route path="mechanics" element={<MechanicsPage />} />
             <Route path="workshops" element={<WorkshopsPage />} />
             <Route path="bookings" element={<BookingsPage />} />
@@ -115,7 +120,10 @@ function RootRouter() {
           <Route path="shop" element={<Shop />} />
           <Route path="appointments" element={<Appointments />} />
           <Route path="addCar" element={<AddCar />} />
+          <Route path="completed-repairs" element={<CompletedRepairs />} />
+          <Route path="repair-history" element={<RepairHistory />} />
         </Route>
+        <Route path="/repairs/:id" element={<RepairDetails />} />
         <Route path="*" element={<Navigate to="/user/home" replace />} />
       </Routes>
     </UserThemeProvider>

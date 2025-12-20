@@ -6,6 +6,7 @@ const Car = require('../models/car');
 const Workshop = require('../models/workshop');
 const Service = require('../models/service');
 const Notification = require('../models/notification');
+const Review = require('../models/review');
 
 // Admin middleware - check if user is admin
 const adminOnly = async (req, res, next) => {
@@ -302,11 +303,145 @@ router.delete('/services/:id', adminOnly, async (req, res) => {
 // ============ REVIEWS/RATINGS ============
 router.get('/reviews', adminOnly, async (req, res) => {
   try {
-    // Get mechanics with their ratings
-    const mechanics = await User.find({ role: 'mechanic' })
-      .select('name rating completedJobs');
-    res.json(mechanics);
+    console.log('[GET /admin/reviews] Fetching reviews...');
+    
+    // First get all reviews with their raw data
+    const reviews = await Review.find().sort({ createdAt: -1 });
+    console.log(`[GET /admin/reviews] Found ${reviews.length} raw reviews`);
+    
+    // Log sample review to debug
+    if (reviews.length > 0) {
+      console.log('[GET /admin/reviews] Sample review:', {
+        _id: reviews[0]._id,
+        userId: reviews[0].userId,
+        mechanicId: reviews[0].mechanicId,
+        repairRequestId: reviews[0].repairRequestId,
+        rating: reviews[0].rating,
+        comment: reviews[0].comment
+      });
+    }
+    
+    // Now populate with user and mechanic details
+    const populatedReviews = await Review.find()
+      .populate({
+        path: 'userId',
+        select: 'name email phone',
+        model: 'User'
+      })
+      .populate({
+        path: 'mechanicId',
+        select: 'name email rating',
+        model: 'User'
+      })
+      .populate({
+        path: 'repairRequestId',
+        select: 'title description status completedAt',
+        model: 'RepairRequest'
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    console.log(`[GET /admin/reviews] Populated ${populatedReviews.length} reviews`);
+    
+    if (populatedReviews.length > 0) {
+      console.log('[GET /admin/reviews] Sample populated review:', {
+        _id: populatedReviews[0]._id,
+        userId: populatedReviews[0].userId,
+        mechanicId: populatedReviews[0].mechanicId,
+        rating: populatedReviews[0].rating,
+        comment: populatedReviews[0].comment
+      });
+    }
+    
+    res.json(populatedReviews);
   } catch (error) {
+    console.error('[GET /admin/reviews] Error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.delete('/reviews/:id', adminOnly, async (req, res) => {
+  try {
+    const review = await Review.findByIdAndDelete(req.params.id);
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+    res.json({ message: 'Review deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Helper endpoint to fix missing user/mechanic data in reviews
+router.post('/reviews/fix-missing-data', adminOnly, async (req, res) => {
+  try {
+    console.log('[POST /reviews/fix-missing-data] Starting...');
+    
+    // Get all reviews
+    const allReviews = await Review.find();
+    console.log(`[POST /reviews/fix-missing-data] Found ${allReviews.length} total reviews`);
+    
+    let fixed = 0;
+    let errors = [];
+    
+    for (const review of allReviews) {
+      try {
+        let needsUpdate = false;
+        
+        // If userId is missing or null, get from repair
+        if (!review.userId) {
+          const repair = await RepairRequest.findById(review.repairRequestId);
+          if (repair && repair.userId) {
+            review.userId = repair.userId;
+            needsUpdate = true;
+            console.log(`[POST /reviews/fix-missing-data] Fixed userId for review ${review._id}`);
+          }
+        }
+        
+        // If mechanicId is missing or null, get from repair
+        if (!review.mechanicId) {
+          const repair = await RepairRequest.findById(review.repairRequestId);
+          if (repair && repair.assignedTo) {
+            review.mechanicId = repair.assignedTo;
+            needsUpdate = true;
+            console.log(`[POST /reviews/fix-missing-data] Fixed mechanicId for review ${review._id}`);
+          }
+        }
+        
+        // If rating is missing, default to 0
+        if (!review.rating) {
+          review.rating = 0;
+          needsUpdate = true;
+        }
+        
+        // If comment is missing, set to empty string
+        if (!review.comment) {
+          review.comment = '';
+          needsUpdate = true;
+        }
+        
+        if (needsUpdate) {
+          await review.save();
+          fixed++;
+        }
+      } catch (error) {
+        errors.push({
+          reviewId: review._id,
+          error: error.message
+        });
+        console.error(`[POST /reviews/fix-missing-data] Error processing review ${review._id}:`, error);
+      }
+    }
+    
+    console.log(`[POST /reviews/fix-missing-data] Completed - Fixed ${fixed} reviews`);
+    
+    res.json({ 
+      message: `Fixed ${fixed} reviews with missing data`,
+      fixedCount: fixed,
+      errors: errors
+    });
+  } catch (error) {
+    console.error('[POST /reviews/fix-missing-data] Error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -331,6 +466,40 @@ router.get('/reports', adminOnly, async (req, res) => {
       totalRevenue: totalRevenue[0]?.total || 0,
       requestsByStatus,
       requestsByPriority
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ============ DATA MIGRATION ============
+router.post('/migrate/fix-assignments', adminOnly, async (req, res) => {
+  try {
+    // Find the first workshop (default workshop)
+    const defaultWorkshop = await Workshop.findOne().select('_id');
+    if (!defaultWorkshop) {
+      return res.status(400).json({ message: 'No workshop found in system' });
+    }
+
+    // Update all repair requests with null assignedTo and workshopId
+    const result = await RepairRequest.updateMany(
+      { 
+        $or: [
+          { assignedTo: null },
+          { workshopId: null }
+        ]
+      },
+      {
+        $set: {
+          workshopId: defaultWorkshop._id
+        }
+      }
+    );
+
+    res.json({
+      message: 'Data migration completed',
+      modifiedCount: result.modifiedCount,
+      defaultWorkshop: defaultWorkshop._id
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

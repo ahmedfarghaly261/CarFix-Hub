@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/user');
+const RepairRequest = require('../models/repairRequest');
+const Review = require('../models/review');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
@@ -51,7 +53,10 @@ router.post('/register', async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
-      role: user.role
+      role: user.role,
+      workshopId: user.workshopId,
+      phone: user.phone,
+      profileImage: user.profileImage
     });
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -82,7 +87,10 @@ router.post('/login', async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
-      role: user.role
+      role: user.role,
+      workshopId: user.workshopId,
+      phone: user.phone,
+      profileImage: user.profileImage
     });
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -145,6 +153,134 @@ router.get('/users', protect, async (req, res) => {
   }
   const users = await User.find({}).select('-password');
   res.json(users);
+});
+
+// ============ COMPLETED REPAIRS FOR USER ============
+router.get('/completed-repairs', protect, async (req, res) => {
+  try {
+    console.log(`[GET /completed-repairs] Fetching for user: ${req.user._id}`);
+    const completedRepairs = await RepairRequest.find({
+      userId: req.user._id,
+      status: 'completed'
+    })
+      .populate('carId', 'make model year plate')
+      .populate('assignedTo', 'name rating')
+      .sort({ actualCompletionDate: -1 });
+
+    console.log(`[GET /completed-repairs] Found ${completedRepairs.length} completed repairs`);
+    res.json(completedRepairs);
+  } catch (error) {
+    console.error(`[GET /completed-repairs] Error: ${error.message}`);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ============ REPAIR HISTORY BY CAR ============
+router.get('/repairs-history/:carId', protect, async (req, res) => {
+  try {
+    const repairs = await RepairRequest.find({
+      userId: req.user._id,
+      carId: req.params.carId
+    })
+      .populate('assignedTo', 'name rating')
+      .sort({ createdAt: -1 });
+
+    res.json(repairs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ============ SUBMIT REVIEW/RATING ============
+router.post('/reviews', protect, async (req, res) => {
+  try {
+    const { repairRequestId, rating, comment, workQuality, timeliness, communication } = req.body;
+
+    console.log(`[POST /reviews] User ${req.user._id} submitting review for repair ${repairRequestId}`);
+
+    // Get repair request to verify it's completed
+    const repair = await RepairRequest.findById(repairRequestId);
+    if (!repair) {
+      console.log(`[POST /reviews] Repair not found: ${repairRequestId}`);
+      return res.status(404).json({ message: 'Repair request not found' });
+    }
+
+    if (repair.status !== 'completed') {
+      console.log(`[POST /reviews] Repair not completed, status: ${repair.status}`);
+      return res.status(400).json({ message: 'Can only review completed repairs' });
+    }
+
+    // Check if review already exists
+    const existingReview = await Review.findOne({ repairRequestId });
+    if (existingReview) {
+      console.log(`[POST /reviews] Review already exists for repair ${repairRequestId}`);
+      return res.status(400).json({ message: 'Review already exists for this repair' });
+    }
+
+    // Create review
+    const review = await Review.create({
+      repairRequestId,
+      mechanicId: repair.assignedTo,
+      userId: req.user._id,
+      rating,
+      comment,
+      workQuality: workQuality || rating,
+      timeliness: timeliness || rating,
+      communication: communication || rating
+    });
+
+    console.log(`[POST /reviews] Review created successfully with rating ${rating}`);
+
+    // Update mechanic's rating in User model
+    const mechanic = await User.findById(repair.assignedTo);
+    if (mechanic) {
+      const allReviews = await Review.find({ mechanicId: repair.assignedTo });
+      const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
+      mechanic.rating = Math.round(avgRating * 10) / 10; // Round to 1 decimal
+      await mechanic.save();
+      console.log(`[POST /reviews] Updated mechanic ${repair.assignedTo} rating to ${mechanic.rating}`);
+    }
+
+    res.status(201).json({ message: 'Review submitted successfully', review });
+  } catch (error) {
+    console.error(`[POST /reviews] Error: ${error.message}`);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ============ GET REPAIR DETAILS WITH REVIEW ============
+router.get('/repair/:id', protect, async (req, res) => {
+  try {
+    console.log(`[GET /repair/:id] Fetching repair: ${req.params.id} for user: ${req.user._id}`);
+    const repair = await RepairRequest.findById(req.params.id)
+      .populate('carId')
+      .populate('assignedTo', 'name rating profileImage')
+      .populate('userId');
+
+    if (!repair) {
+      console.log(`[GET /repair/:id] Repair not found: ${req.params.id}`);
+      return res.status(404).json({ message: 'Repair not found' });
+    }
+
+    // Check authorization
+    if (repair.userId._id.toString() !== req.user._id.toString()) {
+      console.log(`[GET /repair/:id] Not authorized - repair belongs to ${repair.userId._id}, user is ${req.user._id}`);
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    // Get review if exists
+    const review = await Review.findOne({ repairRequestId: req.params.id });
+
+    console.log(`[GET /repair/:id] Repair found with review status: ${!!review}`);
+    res.json({
+      repair,
+      review,
+      hasReview: !!review
+    });
+  } catch (error) {
+    console.error(`[GET /repair/:id] Error: ${error.message}`);
+    res.status(500).json({ message: error.message });
+  }
 });
 
 module.exports = router;

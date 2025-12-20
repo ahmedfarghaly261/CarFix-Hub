@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/user');
-const RepairRequest = require('../models/repairRequest');
-const Notification = require('../models/notification');
+const RepairRequest = require('../models/repairRequest');const Review = require("../models/review");const Notification = require('../models/notification');
 
 // Mechanic middleware - check if user is mechanic
 const mechanicOnly = async (req, res, next) => {
@@ -47,12 +46,36 @@ router.get('/dashboard', mechanicOnly, async (req, res) => {
 // ============ JOBS MANAGEMENT ============
 router.get('/jobs', mechanicOnly, async (req, res) => {
   try {
-    const jobs = await RepairRequest.find({ workshopId: req.user.workshopId })
+    console.log('Mechanic jobs request:', {
+      mechanicId: req.user._id,
+      mechanicName: req.user.name,
+      workshopId: req.user.workshopId
+    });
+
+    const jobs = await RepairRequest.find({
+      $or: [
+        { assignedTo: req.user._id },
+        { workshopId: req.user.workshopId }
+      ]
+    })
       .populate('userId', 'name email phone')
       .populate('carId', 'make model year plate')
       .sort({ createdAt: -1 });
+
+    console.log('Jobs found:', jobs.length);
+    if (jobs.length > 0) {
+      console.log('Job details:', jobs.map(j => ({
+        id: j._id,
+        title: j.title,
+        assignedTo: j.assignedTo,
+        workshopId: j.workshopId,
+        status: j.status
+      })));
+    }
+
     res.json(jobs);
   } catch (error) {
+    console.error('Error fetching mechanic jobs:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -80,8 +103,10 @@ router.get('/jobs/:id', mechanicOnly, async (req, res) => {
 router.get('/appointments', mechanicOnly, async (req, res) => {
   try {
     const appointments = await RepairRequest.find({ 
-      workshopId: req.user.workshopId,
-      status: { $in: ['pending', 'assigned'] }
+      $or: [
+        { assignedTo: req.user._id, status: { $in: ['pending', 'assigned'] } },
+        { workshopId: req.user.workshopId, status: { $in: ['pending', 'assigned'] } }
+      ]
     })
       .populate('userId', 'name email phone')
       .populate('carId', 'make model year')
@@ -96,8 +121,10 @@ router.get('/appointments', mechanicOnly, async (req, res) => {
 router.get('/in-progress', mechanicOnly, async (req, res) => {
   try {
     const jobs = await RepairRequest.find({ 
-      workshopId: req.user.workshopId,
-      status: 'in-progress'
+      $or: [
+        { assignedTo: req.user._id, status: 'in-progress' },
+        { workshopId: req.user.workshopId, status: 'in-progress' }
+      ]
     })
       .populate('userId', 'name email phone')
       .populate('carId', 'make model year plate');
@@ -111,8 +138,10 @@ router.get('/in-progress', mechanicOnly, async (req, res) => {
 router.get('/completed', mechanicOnly, async (req, res) => {
   try {
     const jobs = await RepairRequest.find({ 
-      workshopId: req.user.workshopId,
-      status: 'completed'
+      $or: [
+        { assignedTo: req.user._id, status: 'completed' },
+        { workshopId: req.user.workshopId, status: 'completed' }
+      ]
     })
       .populate('userId', 'name email phone')
       .populate('carId', 'make model year')
@@ -256,10 +285,10 @@ router.post('/jobs/:id/update', mechanicOnly, async (req, res) => {
   }
 });
 
-// ============ COMPLETE JOB ============
-router.put('/jobs/:id/complete', mechanicOnly, async (req, res) => {
+// ============ ADD WORK REPORT ============
+router.put('/jobs/:id/update', mechanicOnly, async (req, res) => {
   try {
-    const { notes, cost } = req.body;
+    const { reportDetails } = req.body;
     
     // REQUIREMENT: Mechanic must be assigned to a workshop
     if (!req.user.workshopId) {
@@ -285,10 +314,60 @@ router.put('/jobs/:id/complete', mechanicOnly, async (req, res) => {
       job.workshopId = req.user.workshopId;
     }
 
+    // Add or update report details
+    if (reportDetails) {
+      job.reportDetails = reportDetails;
+    }
+    
+    await job.save();
+
+    res.json({ message: 'Report added successfully', job });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ============ COMPLETE JOB ============
+router.put('/jobs/:id/complete', mechanicOnly, async (req, res) => {
+  try {
+    const { notes, cost } = req.body;
+    
+    console.log(`[PUT /jobs/:id/complete] Mechanic ${req.user._id} marking job ${req.params.id} as complete`);
+    
+    // REQUIREMENT: Mechanic must be assigned to a workshop
+    if (!req.user.workshopId) {
+      return res.status(403).json({ 
+        message: 'You must be assigned to a workshop to work on jobs' 
+      });
+    }
+    
+    const job = await RepairRequest.findById(req.params.id);
+    
+    if (!job) {
+      console.log(`[PUT /jobs/:id/complete] Job not found: ${req.params.id}`);
+      return res.status(404).json({ message: 'Job not found' });
+    }
+    
+    // Verify mechanic has access: either directly assigned, in same workshop, or job is unassigned
+    const isAssignedToMechanic = job.assignedTo && job.assignedTo.toString() === req.user._id.toString();
+    const isInSameWorkshop = job.workshopId && job.workshopId.toString() === req.user.workshopId.toString();
+    
+    if (!isAssignedToMechanic && !isInSameWorkshop) {
+      console.log(`[PUT /jobs/:id/complete] Not authorized - mechanic not assigned and not in same workshop`);
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    
+    // Auto-assign job to mechanic's workshop if unassigned
+    if (!job.workshopId) {
+      job.workshopId = req.user.workshopId;
+    }
+
     job.status = 'completed';
     job.actualCompletionDate = new Date();
     if (cost) job.totalCost = cost;
     await job.save();
+
+    console.log(`[PUT /jobs/:id/complete] Job marked as completed. Status: ${job.status}, Date: ${job.actualCompletionDate}`);
 
     // Update mechanic stats
     await User.findByIdAndUpdate(req.user._id, {
@@ -314,6 +393,7 @@ router.put('/jobs/:id/complete', mechanicOnly, async (req, res) => {
 
     res.json(job);
   } catch (error) {
+    console.error(`[PUT /jobs/:id/complete] Error: ${error.message}`);
     res.status(500).json({ message: error.message });
   }
 });
@@ -321,8 +401,22 @@ router.put('/jobs/:id/complete', mechanicOnly, async (req, res) => {
 // ============ REVIEWS ============
 router.get('/reviews', mechanicOnly, async (req, res) => {
   try {
-    const mechanic = await User.findById(req.user._id).select('rating completedJobs totalJobs');
-    res.json(mechanic);
+    const mechanic = await User.findById(req.user._id).select('name rating completedJobs totalJobs');
+    
+    // Get all reviews for this mechanic
+    const reviews = await Review.find({ mechanicId: req.user._id })
+      .populate('userId', 'name')
+      .populate('repairRequestId', 'title')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      mechanic,
+      reviews,
+      totalReviews: reviews.length,
+      averageRating: reviews.length > 0 
+        ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+        : 0
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -369,6 +463,127 @@ router.put('/settings', mechanicOnly, async (req, res) => {
     }, { new: true }).select('-password');
     
     res.json(settings);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ============ DIAGNOSTIC ENDPOINT ============
+router.get('/debug/status', mechanicOnly, async (req, res) => {
+  try {
+    const mechanic = await User.findById(req.user._id).select('-password');
+    const allRequests = await RepairRequest.find().select('_id title status assignedTo workshopId userId');
+    const myJobs = await RepairRequest.find({
+      $or: [
+        { assignedTo: req.user._id },
+        { workshopId: req.user.workshopId }
+      ]
+    }).select('_id title status assignedTo workshopId userId');
+
+    res.json({
+      mechanic: {
+        _id: mechanic._id,
+        name: mechanic.name,
+        workshopId: mechanic.workshopId,
+        role: mechanic.role
+      },
+      totalRequestsInDB: allRequests.length,
+      allRequests: allRequests.map(r => ({
+        _id: r._id,
+        title: r.title,
+        status: r.status,
+        assignedTo: r.assignedTo?.toString(),
+        workshopId: r.workshopId?.toString()
+      })),
+      myJobsCount: myJobs.length,
+      myJobs: myJobs.map(j => ({
+        _id: j._id,
+        title: j.title,
+        status: j.status,
+        assignedTo: j.assignedTo?.toString(),
+        workshopId: j.workshopId?.toString()
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ============ DIAGNOSTIC ENDPOINT ============
+router.get('/debug/all-requests', mechanicOnly, async (req, res) => {
+  try {
+    const allRequests = await RepairRequest.find();
+    const myJobs = await RepairRequest.find({
+      $or: [
+        { assignedTo: req.user._id },
+        { workshopId: req.user.workshopId }
+      ]
+    });
+
+    res.json({
+      mechanic: {
+        _id: req.user._id,
+        name: req.user.name,
+        workshopId: req.user.workshopId
+      },
+      allRequestsCount: allRequests.length,
+      allRequests: allRequests.map(r => ({
+        _id: r._id,
+        title: r.title,
+        status: r.status,
+        assignedTo: r.assignedTo?.toString() || 'null',
+        workshopId: r.workshopId?.toString() || 'null',
+        userId: r.userId?.toString()
+      })),
+      myJobsCount: myJobs.length,
+      myJobs: myJobs.map(j => ({
+        _id: j._id,
+        title: j.title,
+        status: j.status,
+        assignedTo: j.assignedTo?.toString() || 'null',
+        workshopId: j.workshopId?.toString() || 'null'
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get('/debug/simple', mechanicOnly, async (req, res) => {
+  try {
+    // Check what's actually in database
+    const allJobs = await RepairRequest.find({}).select('_id title status assignedTo workshopId').limit(5);
+    
+    console.log('Raw DB data:', allJobs.map(j => ({
+      _id: j._id,
+      title: j.title,
+      status: j.status,
+      assignedTo: j.assignedTo,
+      assignedToType: typeof j.assignedTo,
+      workshopId: j.workshopId,
+      workshopIdType: typeof j.workshopId
+    })));
+
+    const myJobs = await RepairRequest.find({
+      $or: [
+        { assignedTo: req.user._id },
+        { workshopId: req.user.workshopId }
+      ]
+    }).select('_id title status assignedTo workshopId');
+
+    res.json({
+      userId: req.user._id,
+      userWorkshopId: req.user.workshopId,
+      jobsFound: myJobs.length,
+      jobs: myJobs,
+      allJobsSample: allJobs.map(j => ({
+        _id: j._id,
+        title: j.title,
+        status: j.status,
+        assignedTo: j.assignedTo?.toString() || 'null',
+        workshopId: j.workshopId?.toString() || 'null'
+      }))
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

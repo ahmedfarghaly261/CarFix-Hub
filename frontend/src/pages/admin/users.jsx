@@ -1,11 +1,13 @@
 
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaEye, FaTrashAlt, FaSearch } from 'react-icons/fa';
 import { useAdminTheme } from '../../context/AdminThemeContext';
 import { getAllUsers, deleteUser } from '../../services/adminService';
 
 function UsersPage() {
   const { isDarkMode } = useAdminTheme();
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -84,7 +86,10 @@ function UsersPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center space-x-2">
-                          <button className={`flex items-center justify-center px-3 py-2 text-xs font-bold rounded-md ${isDarkMode ? 'text-gray-300 bg-gray-700 hover:bg-gray-600' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'}`}>
+                          <button 
+                            onClick={() => navigate(`/admin/users/${user._id}`)}
+                            className={`flex items-center justify-center px-3 py-2 text-xs font-bold rounded-md ${isDarkMode ? 'text-gray-300 bg-gray-700 hover:bg-gray-600' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'}`}
+                          >
                             <FaEye className="mr-1" /> View
                           </button>
                           <button onClick={() => handleDelete(user._id)} className="flex items-center justify-center px-3 py-2 text-xs font-bold text-white bg-red-500 rounded-md hover:bg-red-600">

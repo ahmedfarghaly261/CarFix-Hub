@@ -82,6 +82,9 @@ const repairRequestSchema = new mongoose.Schema({
   assignedTo: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User' // The mechanic assigned to this request
+  },
+  reportDetails: {
+    type: String // Mechanic's work report/notes
   }
 }, {
   timestamps: true

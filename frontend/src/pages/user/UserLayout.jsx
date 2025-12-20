@@ -15,6 +15,8 @@ const UserLayout = () => {
     { name: 'Add Car', page: 'addCar' },
     { name: 'Shop', page: 'shop' },
     { name: 'Appointments', page: 'appointments' },
+    { name: 'Repair History', page: 'repair-history' },
+    { name: 'Completed Repairs', page: 'completed-repairs' },
   ];
 
   // --- Cart modal state and handlers ---
@@ -112,12 +114,12 @@ const UserLayout = () => {
         </div>
 
         {/* Sub-Navigation Bar */}
-        <nav className="flex items-center px-6 bg-white">
+        <nav className={`flex items-center px-6 overflow-x-auto transition-colors ${isDarkMode ? 'bg-[#1E2A38]' : 'bg-white'}`}>
           {navLinks.map((link) => (
             <a 
               key={link.name}
               href={`/user/${link.page}`}
-              className="py-3 px-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition duration-150"
+              className={`py-3 px-4 text-sm font-medium transition duration-150 ${isDarkMode ? 'text-gray-300 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'}`}
             >
               {link.name}
             </a>

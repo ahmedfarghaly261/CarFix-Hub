@@ -68,7 +68,28 @@ export default function BookingsPage() {
     }
 
     try {
-      const res = await assignMechanic(selectedBooking._id, { mechanicId: selectedMechanic });
+      console.log('Assigning mechanic:', {
+        selectedMechanic,
+        mechanics: mechanics.map(m => ({ _id: m._id, name: m.name, workshopId: m.workshopId }))
+      });
+
+      // When assigning a mechanic, we need to:
+      // 1. Set assignedTo to the mechanic ID
+      // 2. Set status to 'assigned'
+      // 3. Get the mechanic's workshop and set workshopId
+      const selectedMechanicData = mechanics.find(m => m._id === selectedMechanic);
+      console.log('Found mechanic data:', selectedMechanicData);
+      
+      const updateData = { 
+        assignedTo: selectedMechanic,
+        status: 'assigned',
+        workshopId: selectedMechanicData?.workshopId  // Also set the workshop
+      };
+
+      console.log('Sending update:', updateData);
+      const res = await updateBooking(selectedBooking._id, updateData);
+      console.log('Update response:', res.data);
+      
       // Update local state
       setBookings(bookings.map(b => b._id === selectedBooking._id ? res.data : b));
       setShowAssignModal(false);
@@ -76,6 +97,7 @@ export default function BookingsPage() {
       setSelectedMechanic(null);
       alert('Mechanic assigned successfully!');
     } catch (err) {
+      console.error('Assignment error:', err);
       alert(err.response?.data?.message || 'Failed to assign mechanic');
     }
   };
