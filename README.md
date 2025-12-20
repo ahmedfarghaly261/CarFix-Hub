@@ -691,7 +691,7 @@ For support, questions, or feedback:
 
 <div align="center">
 
-**Made with ❤️ by the CarFix Team**
+**Made with ❤️ by AHMED**
 
 ⭐ Star us on GitHub if you found this helpful!
 
