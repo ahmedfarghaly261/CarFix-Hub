@@ -21,6 +21,8 @@ import BookingsPage from "./pages/admin/bookings";
 import ServicesPage from "./pages/admin/services";
 import ReviewsPage from "./pages/admin/reviews";
 import SettingsPage from "./pages/admin/settings";
+import JobsPage from "./pages/admin/jobs";
+import JobDetailPage from "./pages/admin/jobDetail";
 import MechanicsLayout from "./pages/Mechanics/MechanicsLayout";
 import MechanicsDashboard from "./pages/Mechanics/MechanicsDashboard";
 import MechanicsJobsPage from "./pages/Mechanics/jobs";
@@ -75,6 +77,8 @@ function RootRouter() {
             <Route path="users/:userId" element={<UserDetailPage />} />
             <Route path="mechanics" element={<MechanicsPage />} />
             <Route path="workshops" element={<WorkshopsPage />} />
+            <Route path="jobs" element={<JobsPage />} />
+            <Route path="jobs/:jobId" element={<JobDetailPage />} />
             <Route path="bookings" element={<BookingsPage />} />
             <Route path="services" element={<ServicesPage />} />
             <Route path="reviews" element={<ReviewsPage />} />

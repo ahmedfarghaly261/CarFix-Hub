@@ -388,7 +388,25 @@ router.put('/jobs/:id/complete', mechanicOnly, async (req, res) => {
       });
     } catch (notificationError) {
       console.error('Failed to create notification:', notificationError.message);
-      // Don't throw - notification failure shouldn't fail the main request
+    }
+
+    // Create notification for admin(s)
+    try {
+      const admins = await User.find({ role: 'admin' }).select('_id');
+      for (const admin of admins) {
+        await Notification.create({
+          recipient: admin._id,
+          type: 'job_completed',
+          title: 'Job Completed',
+          message: `Mechanic "${req.user.name}" has completed the job "${job.title}"`,
+          relatedTo: {
+            model: 'RepairRequest',
+            id: job._id
+          }
+        });
+      }
+    } catch (notificationError) {
+      console.error('Failed to create admin notification:', notificationError.message);
     }
 
     res.json(job);

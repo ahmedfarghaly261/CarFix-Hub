@@ -12,7 +12,8 @@ import {
   LogOut,
   Sun,
   Moon,
-  Hammer
+  Hammer,
+  Briefcase
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useAdminTheme } from "../../context/AdminThemeContext";
@@ -30,6 +31,7 @@ const Sidebar = () => {
     { name: "Users", to: "/admin/users", icon: <Users size={20} /> },
     { name: "Mechanics", to: "/admin/mechanics", icon: <Wrench size={20} /> },
     { name: "Workshops", to: "/admin/workshops", icon: <Hammer size={20} /> },
+    { name: "Jobs", to: "/admin/jobs", icon: <Briefcase size={20} /> },
     { name: "Bookings", to: "/admin/bookings", icon: <CalendarDays size={20} /> },
     { name: "Services", to: "/admin/services", icon: <Gift size={20} /> },
     { name: "Reviews", to: "/admin/reviews", icon: <Star size={20} /> },

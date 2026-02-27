@@ -446,6 +446,84 @@ router.post('/reviews/fix-missing-data', adminOnly, async (req, res) => {
   }
 });
 
+// ============ JOBS MANAGEMENT (All Jobs with details) ============
+router.get('/jobs', adminOnly, async (req, res) => {
+  try {
+    const jobs = await RepairRequest.find()
+      .populate('userId', 'name email phone')
+      .populate('carId', 'make model year plate')
+      .populate('workshopId', 'name address')
+      .populate('assignedTo', 'name email phone specializations')
+      .sort({ createdAt: -1 });
+    res.json(jobs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get('/jobs/:id', adminOnly, async (req, res) => {
+  try {
+    const job = await RepairRequest.findById(req.params.id)
+      .populate('userId', 'name email phone address city')
+      .populate('carId', 'make model year plate mileage')
+      .populate('workshopId', 'name address phone')
+      .populate('assignedTo', 'name email phone specializations rating');
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+    res.json(job);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Send invoice to user
+router.post('/jobs/:id/send-invoice', adminOnly, async (req, res) => {
+  try {
+    const job = await RepairRequest.findById(req.params.id)
+      .populate('userId', 'name email');
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+
+    job.invoiceSent = true;
+    job.invoiceSentAt = new Date();
+    await job.save();
+
+    // Notify the user about the invoice
+    await Notification.create({
+      recipient: job.userId._id,
+      type: 'invoice',
+      title: 'Invoice Received',
+      message: `An invoice of $${job.totalCost} has been sent for your repair "${job.title}"`,
+      relatedTo: {
+        model: 'RepairRequest',
+        id: job._id
+      }
+    });
+
+    res.json({ message: 'Invoice sent successfully', job });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Set mechanic salary for a job
+router.put('/jobs/:id/salary', adminOnly, async (req, res) => {
+  try {
+    const { mechanicSalary } = req.body;
+    if (mechanicSalary == null || mechanicSalary < 0) {
+      return res.status(400).json({ message: 'Valid salary amount is required' });
+    }
+
+    const job = await RepairRequest.findById(req.params.id);
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+
+    job.mechanicSalary = mechanicSalary;
+    await job.save();
+
+    res.json({ message: 'Salary updated successfully', job });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // ============ REPORTS ============
 router.get('/reports', adminOnly, async (req, res) => {
   try {

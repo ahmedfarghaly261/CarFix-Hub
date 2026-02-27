@@ -85,6 +85,17 @@ const repairRequestSchema = new mongoose.Schema({
   },
   reportDetails: {
     type: String // Mechanic's work report/notes
+  },
+  invoiceSent: {
+    type: Boolean,
+    default: false
+  },
+  invoiceSentAt: {
+    type: Date
+  },
+  mechanicSalary: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true

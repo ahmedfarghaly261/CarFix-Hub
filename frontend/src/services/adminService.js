@@ -93,3 +93,16 @@ export const getRevenueReport = () =>
 
 export const getRequestsReport = () =>
   BaseAPI.get('/admin/reports', { type: 'requests' });
+
+// JOBS MANAGEMENT
+export const getAllJobs = () =>
+  BaseAPI.get('/admin/jobs');
+
+export const getJobById = (jobId) =>
+  BaseAPI.get(`/admin/jobs/${jobId}`);
+
+export const sendInvoice = (jobId) =>
+  BaseAPI.post(`/admin/jobs/${jobId}/send-invoice`);
+
+export const setMechanicSalary = (jobId, mechanicSalary) =>
+  BaseAPI.put(`/admin/jobs/${jobId}/salary`, { mechanicSalary });

@@ -15,7 +15,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['repair_update', 'status_change', 'cost_update', 'system', 'other'],
+    enum: ['repair_update', 'status_change', 'cost_update', 'job_completed', 'invoice', 'system', 'other'],
     required: true
   },
   read: {
