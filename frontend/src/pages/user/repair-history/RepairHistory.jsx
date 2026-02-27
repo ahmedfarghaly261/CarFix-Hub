@@ -3,16 +3,31 @@ import { useAuth } from '../../../context/AuthContext';
 import { useUserTheme } from '../../../context/UserThemeContext';
 import API from '../../../services/api';
 import { useNavigate } from 'react-router-dom';
+import {
+  FileText, Car, Calendar, CheckCircle, Clock, Wrench, AlertCircle,
+  ExternalLink, ChevronRight, DollarSign, Search
+} from 'lucide-react';
+import InvoiceModal from '../../../components/shared/InvoiceModal';
+
+const statusConfig = {
+  completed: { icon: CheckCircle, label: 'Completed', lightBg: 'bg-green-50', lightText: 'text-green-700', lightBorder: 'border-green-200', darkBg: 'bg-green-900/30', darkText: 'text-green-300', darkBorder: 'border-green-800', accent: 'from-green-500 to-emerald-500' },
+  'in-progress': { icon: Clock, label: 'In Progress', lightBg: 'bg-amber-50', lightText: 'text-amber-700', lightBorder: 'border-amber-200', darkBg: 'bg-amber-900/30', darkText: 'text-amber-300', darkBorder: 'border-amber-800', accent: 'from-amber-500 to-yellow-500' },
+  assigned: { icon: Wrench, label: 'Assigned', lightBg: 'bg-blue-50', lightText: 'text-blue-700', lightBorder: 'border-blue-200', darkBg: 'bg-blue-900/30', darkText: 'text-blue-300', darkBorder: 'border-blue-800', accent: 'from-blue-500 to-cyan-500' },
+  pending: { icon: AlertCircle, label: 'Pending', lightBg: 'bg-gray-50', lightText: 'text-gray-600', lightBorder: 'border-gray-200', darkBg: 'bg-gray-800/40', darkText: 'text-gray-400', darkBorder: 'border-gray-700', accent: 'from-gray-400 to-gray-500' },
+  cancelled: { icon: AlertCircle, label: 'Cancelled', lightBg: 'bg-red-50', lightText: 'text-red-700', lightBorder: 'border-red-200', darkBg: 'bg-red-900/30', darkText: 'text-red-300', darkBorder: 'border-red-800', accent: 'from-red-500 to-rose-500' },
+};
 
 export default function RepairHistory() {
   const { user } = useAuth();
   const { isDarkMode } = useUserTheme();
   const navigate = useNavigate();
-  
+
   const [cars, setCars] = useState([]);
   const [selectedCar, setSelectedCar] = useState(null);
   const [repairs, setRepairs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [invoiceRepair, setInvoiceRepair] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -53,120 +68,271 @@ export default function RepairHistory() {
     fetchRepairsForCar(carId);
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return isDarkMode ? 'bg-green-900 text-green-200' : 'bg-green-200 text-green-700';
-      case 'in-progress':
-        return isDarkMode ? 'bg-yellow-900 text-yellow-200' : 'bg-yellow-200 text-yellow-700';
-      case 'assigned':
-        return isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-200 text-blue-700';
-      case 'pending':
-        return isDarkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-200 text-gray-700';
-      default:
-        return isDarkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-200 text-gray-700';
-    }
+  const selectedCarData = cars.find(c => c._id === selectedCar);
+
+  const filtered = repairs.filter(r =>
+    searchQuery === '' ||
+    r.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.assignedTo?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const statusCounts = {
+    total: repairs.length,
+    completed: repairs.filter(r => r.status === 'completed').length,
+    'in-progress': repairs.filter(r => r.status === 'in-progress').length,
+    pending: repairs.filter(r => r.status === 'pending' || r.status === 'assigned').length,
   };
 
-  if (loading) {
+  if (loading && cars.length === 0) {
     return (
-      <div className={`px-6 min-h-screen ${isDarkMode ? 'bg-[#101828]' : 'bg-gray-50'}`}>
-        <p className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          Loading repair history...
-        </p>
+      <div className={`px-6 min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-[#101828]' : 'bg-gray-50'}`}>
+        <div className="flex flex-col items-center gap-3">
+          <div className={`w-10 h-10 border-4 rounded-full animate-spin ${isDarkMode ? 'border-gray-700 border-t-blue-400' : 'border-gray-200 border-t-blue-600'}`} />
+          <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Loading repair history...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={`px-6 max-w-6xl mx-auto pb-12 ${isDarkMode ? 'bg-[#101828]' : 'bg-gray-50'}`}>
-      <h1 className={`text-3xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-        Repair History
-      </h1>
+    <div className={`px-4 sm:px-6 max-w-6xl mx-auto pb-12 pt-2 ${isDarkMode ? 'bg-[#101828]' : 'bg-gray-50'}`}>
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className={`text-2xl sm:text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          Repair History
+        </h1>
+        <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+          Track all repairs across your vehicles
+        </p>
+      </div>
 
       {cars.length === 0 ? (
-        <div className={`rounded-lg p-8 text-center ${isDarkMode ? 'bg-[#1E2A38]' : 'bg-white'}`}>
-          <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
-            No cars found. Add a car to view repair history.
+        <div className={`rounded-2xl p-12 text-center ${isDarkMode ? 'bg-[#1E2A38] border border-gray-700' : 'bg-white border border-gray-200'}`}>
+          <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+            <Car size={28} className={isDarkMode ? 'text-gray-600' : 'text-gray-400'} />
+          </div>
+          <h3 className={`text-lg font-semibold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>No cars found</h3>
+          <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+            Add a car first to view its repair history.
           </p>
         </div>
       ) : (
         <>
-          {/* Car Selection */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {cars.map((car) => (
-              <button
-                key={car._id}
-                onClick={() => handleCarSelect(car._id)}
-                className={`p-4 rounded-lg transition-colors ${
-                  selectedCar === car._id
-                    ? isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'
-                    : isDarkMode ? 'bg-[#1E2A38] text-gray-300 hover:bg-[#27384a]' : 'bg-white text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                <p className="font-semibold">{car.year} {car.make}</p>
-                <p className="text-sm">{car.model}</p>
-                <p className="text-xs">{car.licensePlate}</p>
-              </button>
-            ))}
-          </div>
-
-          {/* Repairs List */}
-          {repairs.length === 0 ? (
-            <div className={`rounded-lg p-8 text-center ${isDarkMode ? 'bg-[#1E2A38]' : 'bg-white'}`}>
-              <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
-                No repairs found for this car
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {repairs.map((repair) => (
-                <div
-                  key={repair._id}
-                  className={`rounded-lg shadow p-6 transition-colors cursor-pointer hover:shadow-lg ${isDarkMode ? 'bg-[#1E2A38] border border-gray-700' : 'bg-white border border-gray-200'}`}
-                  onClick={() => repair.status === 'completed' && navigate(`/repairs/${repair._id}`)}
+          {/* Car Selection Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+            {cars.map((car) => {
+              const isSelected = selectedCar === car._id;
+              return (
+                <button
+                  key={car._id}
+                  onClick={() => handleCarSelect(car._id)}
+                  className={`relative p-4 rounded-xl text-left transition-all duration-200 group overflow-hidden ${
+                    isSelected
+                      ? isDarkMode
+                        ? 'bg-blue-600/20 border-2 border-blue-500 shadow-lg shadow-blue-900/20'
+                        : 'bg-blue-50 border-2 border-blue-500 shadow-md shadow-blue-100'
+                      : isDarkMode
+                        ? 'bg-[#1E2A38] border border-gray-700 hover:border-gray-600 hover:bg-[#27384a]'
+                        : 'bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                  }`}
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {repair.title}
-                      </h3>
-                      <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
-                        {repair.description}
-                      </p>
-                      <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        Requested: {new Date(repair.createdAt).toLocaleDateString()}
-                        {repair.actualCompletionDate && ` • Completed: ${new Date(repair.actualCompletionDate).toLocaleDateString()}`}
-                      </p>
-                      {repair.assignedTo && (
-                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          Mechanic: {repair.assignedTo.name}
-                        </p>
-                      )}
+                  {isSelected && <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />}
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-lg shrink-0 ${isSelected ? (isDarkMode ? 'bg-blue-600/30' : 'bg-blue-100') : (isDarkMode ? 'bg-gray-800' : 'bg-gray-100')}`}>
+                      <Car size={18} className={isSelected ? (isDarkMode ? 'text-blue-400' : 'text-blue-600') : (isDarkMode ? 'text-gray-500' : 'text-gray-400')} />
                     </div>
-
-                    <div className="flex flex-col items-end gap-3 ml-4">
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(repair.status)}`}>
-                        {repair.status.charAt(0).toUpperCase() + repair.status.slice(1)}
-                      </span>
-                      {repair.status === 'completed' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/repairs/${repair._id}`);
-                          }}
-                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition"
-                        >
-                          View Details
-                        </button>
+                    <div className="min-w-0">
+                      <p className={`font-bold text-sm truncate ${isSelected ? (isDarkMode ? 'text-blue-300' : 'text-blue-700') : (isDarkMode ? 'text-white' : 'text-gray-900')}`}>
+                        {car.year} {car.make}
+                      </p>
+                      <p className={`text-sm truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{car.model}</p>
+                      {car.plate && (
+                        <span className={`inline-block mt-1 text-xs font-mono px-1.5 py-0.5 rounded ${isDarkMode ? 'bg-gray-800/80 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                          {car.plate}
+                        </span>
                       )}
                     </div>
                   </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Stats row for selected car */}
+          {repairs.length > 0 && (
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className={`rounded-xl p-3 flex items-center gap-3 ${isDarkMode ? 'bg-[#1E2A38] border border-gray-700' : 'bg-white border border-gray-200 shadow-sm'}`}>
+                <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-900/40' : 'bg-blue-100'}`}>
+                  <Wrench size={16} className={isDarkMode ? 'text-blue-400' : 'text-blue-600'} />
                 </div>
-              ))}
+                <div>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Total</p>
+                  <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{statusCounts.total}</p>
+                </div>
+              </div>
+              <div className={`rounded-xl p-3 flex items-center gap-3 ${isDarkMode ? 'bg-[#1E2A38] border border-gray-700' : 'bg-white border border-gray-200 shadow-sm'}`}>
+                <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-green-900/40' : 'bg-green-100'}`}>
+                  <CheckCircle size={16} className={isDarkMode ? 'text-green-400' : 'text-green-600'} />
+                </div>
+                <div>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Done</p>
+                  <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{statusCounts.completed}</p>
+                </div>
+              </div>
+              <div className={`rounded-xl p-3 flex items-center gap-3 ${isDarkMode ? 'bg-[#1E2A38] border border-gray-700' : 'bg-white border border-gray-200 shadow-sm'}`}>
+                <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-amber-900/40' : 'bg-amber-100'}`}>
+                  <Clock size={16} className={isDarkMode ? 'text-amber-400' : 'text-amber-600'} />
+                </div>
+                <div>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Active</p>
+                  <p className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{statusCounts['in-progress'] + statusCounts.pending}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Search */}
+          {repairs.length > 0 && (
+            <div className="relative mb-5">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                placeholder="Search repairs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={`w-full pl-9 pr-4 py-2.5 rounded-xl border text-sm transition-colors ${isDarkMode ? 'bg-[#1E2A38] border-gray-700 text-gray-200 placeholder-gray-500 focus:border-blue-500' : 'bg-white border-gray-300 text-gray-700 placeholder-gray-400 focus:border-blue-500'} focus:outline-none focus:ring-1 focus:ring-blue-500`}
+              />
+            </div>
+          )}
+
+          {/* Repairs List */}
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className={`w-8 h-8 border-4 rounded-full animate-spin ${isDarkMode ? 'border-gray-700 border-t-blue-400' : 'border-gray-200 border-t-blue-600'}`} />
+            </div>
+          ) : repairs.length === 0 ? (
+            <div className={`rounded-2xl p-12 text-center ${isDarkMode ? 'bg-[#1E2A38] border border-gray-700' : 'bg-white border border-gray-200'}`}>
+              <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                <Wrench size={28} className={isDarkMode ? 'text-gray-600' : 'text-gray-400'} />
+              </div>
+              <h3 className={`text-lg font-semibold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>No repairs found</h3>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                {selectedCarData ? `No repair history for your ${selectedCarData.year} ${selectedCarData.make} ${selectedCarData.model}` : 'Select a car above to view repairs.'}
+              </p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className={`rounded-2xl p-8 text-center ${isDarkMode ? 'bg-[#1E2A38] border border-gray-700' : 'bg-white border border-gray-200'}`}>
+              <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>No repairs match your search.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map((repair) => {
+                const cfg = statusConfig[repair.status] || statusConfig.pending;
+                const StatusIcon = cfg.icon;
+                return (
+                  <div
+                    key={repair._id}
+                    className={`group rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md ${isDarkMode ? 'bg-[#1E2A38] border border-gray-700 hover:border-gray-600' : 'bg-white border border-gray-200 hover:border-gray-300'}`}
+                  >
+                    {/* Accent bar */}
+                    <div className={`h-1 bg-gradient-to-r ${cfg.accent}`} />
+
+                    <div className="p-4 sm:p-5">
+                      {/* Top row */}
+                      <div className="flex items-start gap-4">
+                        {/* Status icon */}
+                        <div className={`shrink-0 p-2.5 rounded-xl ${isDarkMode ? cfg.darkBg : cfg.lightBg}`}>
+                          <StatusIcon size={20} className={isDarkMode ? cfg.darkText : cfg.lightText} />
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h3 className={`font-bold truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {repair.title}
+                              </h3>
+                              <p className={`text-sm mt-0.5 line-clamp-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {repair.description}
+                              </p>
+                            </div>
+                            <span className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${isDarkMode ? `${cfg.darkBg} ${cfg.darkText} ${cfg.darkBorder}` : `${cfg.lightBg} ${cfg.lightText} ${cfg.lightBorder}`}`}>
+                              <StatusIcon size={12} />
+                              {cfg.label}
+                            </span>
+                          </div>
+
+                          {/* Meta row */}
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2.5">
+                            <span className={`flex items-center gap-1 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                              <Calendar size={12} />
+                              {new Date(repair.createdAt).toLocaleDateString()}
+                            </span>
+                            {repair.actualCompletionDate && (
+                              <span className={`flex items-center gap-1 text-xs ${isDarkMode ? 'text-green-500' : 'text-green-600'}`}>
+                                <CheckCircle size={12} />
+                                {new Date(repair.actualCompletionDate).toLocaleDateString()}
+                              </span>
+                            )}
+                            {repair.assignedTo && (
+                              <span className={`flex items-center gap-1 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                <Wrench size={12} />
+                                {repair.assignedTo.name}
+                              </span>
+                            )}
+                            {repair.totalCost > 0 && (
+                              <span className={`flex items-center gap-1 text-xs font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                <DollarSign size={12} />
+                                {repair.totalCost}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Actions */}
+                          {repair.status === 'completed' && (
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/repairs/${repair._id}`);
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                              >
+                                <ExternalLink size={13} />
+                                View Details
+                              </button>
+                              {repair.invoiceSent && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setInvoiceRepair(repair);
+                                  }}
+                                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border ${isDarkMode ? 'bg-green-900/30 text-green-300 border-green-800 hover:bg-green-900/50' : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'}`}
+                                >
+                                  <FileText size={13} />
+                                  Invoice
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </>
+      )}
+
+      {invoiceRepair && (
+        <InvoiceModal
+          repair={invoiceRepair}
+          onClose={() => setInvoiceRepair(null)}
+          isDarkMode={isDarkMode}
+        />
       )}
     </div>
   );

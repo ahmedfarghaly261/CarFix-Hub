@@ -158,13 +158,14 @@ router.get('/users', protect, async (req, res) => {
 // ============ COMPLETED REPAIRS FOR USER ============
 router.get('/completed-repairs', protect, async (req, res) => {
   try {
-    console.log(`[GET /completed-repairs] Fetching for user: ${req.user._id}`);
+    // console.log(`[GET /completed-repairs] Fetching for user: ${req.user._id}`);
     const completedRepairs = await RepairRequest.find({
       userId: req.user._id,
       status: 'completed'
     })
       .populate('carId', 'make model year plate')
       .populate('assignedTo', 'name rating')
+      .populate('workshopId', 'name address phone')
       .sort({ actualCompletionDate: -1 });
 
     console.log(`[GET /completed-repairs] Found ${completedRepairs.length} completed repairs`);
@@ -183,6 +184,8 @@ router.get('/repairs-history/:carId', protect, async (req, res) => {
       carId: req.params.carId
     })
       .populate('assignedTo', 'name rating')
+      .populate('workshopId', 'name address phone')
+      .populate('carId', 'make model year plate')
       .sort({ createdAt: -1 });
 
     res.json(repairs);
@@ -251,7 +254,6 @@ router.post('/reviews', protect, async (req, res) => {
 // ============ GET REPAIR DETAILS WITH REVIEW ============
 router.get('/repair/:id', protect, async (req, res) => {
   try {
-    console.log(`[GET /repair/:id] Fetching repair: ${req.params.id} for user: ${req.user._id}`);
     const repair = await RepairRequest.findById(req.params.id)
       .populate('carId')
       .populate('assignedTo', 'name rating profileImage')
