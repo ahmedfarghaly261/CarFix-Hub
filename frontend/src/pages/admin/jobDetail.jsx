@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -36,30 +36,39 @@ export default function JobDetailPage() {
   const [salary, setSalary] = useState('');
   const [savingSalary, setSavingSalary] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState(false);
+  const [invoiceAmount, setInvoiceAmount] = useState('');
 
-  useEffect(() => {
-    fetchJob();
-  }, [jobId]);
-
-  const fetchJob = async () => {
+  const fetchJob = useCallback(async () => {
     setLoading(true);
     try {
       const res = await getJobById(jobId);
       setJob(res.data);
       setSalary(res.data.mechanicSalary || '');
+      setInvoiceAmount(res.data.billingAmount ?? '');
     } catch (err) {
       console.error('Failed to load job', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [jobId]);
+
+  useEffect(() => {
+    fetchJob();
+  }, [fetchJob]);
 
   const handleSendInvoice = async () => {
     if (!job) return;
+    const hasAmount = invoiceAmount !== '' && invoiceAmount != null;
+    const parsedAmount = hasAmount ? Number(invoiceAmount) : null;
+    if (hasAmount && (!Number.isFinite(parsedAmount) || parsedAmount < 0)) {
+      alert('Please enter a valid invoice amount');
+      return;
+    }
     setSendingInvoice(true);
     try {
-      const res = await sendInvoice(job._id);
+      const res = await sendInvoice(job._id, parsedAmount);
       setJob(res.data.job);
+      setInvoiceAmount(res.data.job.billingAmount ?? '');
       alert('Invoice sent to customer successfully!');
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to send invoice');
@@ -285,7 +294,7 @@ export default function JobDetailPage() {
                 <p className={valueClass}>
                   {job.carId?.year} {job.carId?.make} {job.carId?.model}
                 </p>
-                <p className={subValueClass}>Plate: {job.carId?.plate || 'N/A'}</p>
+                <p className={subValueClass}>Plate: {job.carId?.licensePlate || job.carId?.plate || 'N/A'}</p>
                 {job.carId?.mileage && <p className={subValueClass}>Mileage: {job.carId.mileage} km</p>}
               </div>
             </div>
@@ -373,6 +382,26 @@ export default function JobDetailPage() {
                   <p className={labelClass}>Total Cost</p>
                   <p className={`text-2xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
                     ${job.totalCost || 0}
+                  </p>
+                </div>
+
+                {/* Invoice Amount */}
+                <div>
+                  <p className={labelClass}>Invoice Amount</p>
+                  <div className="relative mt-2">
+                    <DollarSign size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                    <input
+                      type="number"
+                      min="0"
+                      value={invoiceAmount}
+                      onChange={(e) => setInvoiceAmount(e.target.value)}
+                      disabled={job.invoiceSent}
+                      placeholder={String(job.totalCost || 0)}
+                      className={`w-full pl-9 pr-3 py-2 rounded-lg border text-sm ${isDarkMode ? 'bg-[#27384a] border-gray-700 text-gray-200 placeholder-gray-500' : 'bg-white border-gray-300 text-gray-700 placeholder-gray-400'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    />
+                  </div>
+                  <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Leave empty to use the calculated total.
                   </p>
                 </div>
 

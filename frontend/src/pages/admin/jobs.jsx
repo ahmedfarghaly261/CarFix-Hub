@@ -48,6 +48,10 @@ export default function JobsPage() {
     const matchesSearch = searchQuery === '' ||
       job.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.userId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.carId?.make?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.carId?.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.carId?.licensePlate?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.carId?.plate?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.assignedTo?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.workshopId?.name?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = filterStatus === '' || job.status === filterStatus;
@@ -138,7 +142,7 @@ export default function JobsPage() {
             <table className={`min-w-full divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
               <thead className={isDarkMode ? 'bg-[#27384a]' : 'bg-gray-50'}>
                 <tr>
-                  {['Job ID', 'Title', 'Customer', 'Mechanic', 'Workshop', 'Status', 'Cost', 'Actions'].map((header) => (
+                  {['Job ID', 'Title', 'Customer', 'Vehicle', 'Mechanic', 'Workshop', 'Status', 'Cost', 'Actions'].map((header) => (
                     <th
                       key={header}
                       className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}
@@ -150,9 +154,9 @@ export default function JobsPage() {
               </thead>
               <tbody className={`divide-y ${isDarkMode ? 'bg-[#1E2A38] divide-gray-700' : 'bg-white divide-gray-200'}`}>
                 {loading ? (
-                  <tr><td colSpan={8} className={`px-6 py-8 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading jobs...</td></tr>
+                  <tr><td colSpan={9} className={`px-6 py-8 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading jobs...</td></tr>
                 ) : filteredJobs.length === 0 ? (
-                  <tr><td colSpan={8} className={`px-6 py-8 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>No jobs found</td></tr>
+                  <tr><td colSpan={9} className={`px-6 py-8 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>No jobs found</td></tr>
                 ) : (
                   filteredJobs.map((job) => (
                     <tr
@@ -173,6 +177,14 @@ export default function JobsPage() {
                         </div>
                       </td>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <div className="flex flex-col">
+                          <span>{job.carId ? `${job.carId.year || ''} ${job.carId.make || ''} ${job.carId.model || ''}`.trim() : 'N/A'}</span>
+                          <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>
+                            {job.carId?.licensePlate || job.carId?.plate || 'No plate'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         <div className="flex items-center gap-2">
                           <Wrench size={14} className="text-gray-400" />
                           {job.assignedTo?.name || <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>Not assigned</span>}
@@ -190,7 +202,7 @@ export default function JobsPage() {
                         </span>
                       </td>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                        ${job.totalCost || 0}
+                        ${job.billingAmount ?? job.totalCost ?? 0}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <button
