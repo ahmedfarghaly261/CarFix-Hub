@@ -19,6 +19,11 @@ export default function MechanicsJobsPage() {
   const [reportLoading, setReportLoading] = useState(false);
   const [repairItem, setRepairItem] = useState('');
   const [repairAmount, setRepairAmount] = useState('');
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+  const [completeReportText, setCompleteReportText] = useState('');
+  const [completeRepairItem, setCompleteRepairItem] = useState('');
+  const [completeRepairAmount, setCompleteRepairAmount] = useState('');
+  const [completeLoading, setCompleteLoading] = useState(false);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -183,14 +188,37 @@ export default function MechanicsJobsPage() {
     }
   };
 
-  const handleCompleteJob = async () => {
+  const handleOpenCompleteModal = (job = null) => {
+    const targetJob = job || selectedJob;
+    if (!targetJob) return;
+    setSelectedJob(targetJob);
+    setCompleteReportText('');
+    setCompleteRepairItem('');
+    setCompleteRepairAmount('');
+    setIsCompleteModalOpen(true);
+  };
+
+  const handleSubmitCompleteJob = async () => {
     if (!selectedJob) return;
 
-    if (!confirm('Are you sure you want to mark this job as completed?')) return;
+    if (!completeRepairItem.trim()) {
+      alert('Please enter what was repaired');
+      return;
+    }
 
-    setModalLoading(true);
+    const parsedAmount = Number(completeRepairAmount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
+      alert('Please enter a valid repair amount');
+      return;
+    }
+
+    setCompleteLoading(true);
     try {
-      await API.put(`/mechanics/jobs/${selectedJob.id}/complete`, {});
+      await API.put(`/mechanics/jobs/${selectedJob.id}/complete`, {
+        reportDetails: completeReportText,
+        repairItem: completeRepairItem,
+        repairAmount: parsedAmount
+      });
       
       // Update local state - remove from jobs list or change status
       setJobs(jobs.map(job =>
@@ -199,6 +227,7 @@ export default function MechanicsJobsPage() {
           : job
       ).filter(job => job.status !== 'completed'));
       
+      setIsCompleteModalOpen(false);
       setIsModalOpen(false);
       setSelectedJob(null);
       alert('Job marked as completed!');
@@ -206,7 +235,7 @@ export default function MechanicsJobsPage() {
       console.error('Error completing job:', err);
       alert(err.response?.data?.message || 'Failed to complete job');
     } finally {
-      setModalLoading(false);
+      setCompleteLoading(false);
     }
   };
 
@@ -332,7 +361,7 @@ export default function MechanicsJobsPage() {
                         <button 
                           onClick={() => {
                             setSelectedJob(job);
-                            handleCompleteJob();
+                            handleOpenCompleteModal(job);
                           }}
                           className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm">
                           Complete
@@ -449,11 +478,13 @@ export default function MechanicsJobsPage() {
                     Add Report
                   </button>
                   <button
-                    onClick={handleCompleteJob}
-                    disabled={modalLoading}
-                    className={`flex-1 px-4 py-2 rounded font-medium text-sm text-white transition ${modalLoading ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      handleOpenCompleteModal(selectedJob);
+                    }}
+                    className="flex-1 px-4 py-2 rounded font-medium text-sm text-white transition bg-green-600 hover:bg-green-700"
                   >
-                    {modalLoading ? 'Completing...' : 'Complete Job'}
+                    Complete Job
                   </button>
                 </>
               )}
@@ -569,6 +600,112 @@ export default function MechanicsJobsPage() {
                 className={`flex-1 px-4 py-2 rounded font-medium text-sm text-white transition ${reportLoading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} disabled:opacity-50`}
               >
                 {reportLoading ? 'Saving...' : 'Save Report'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Complete Job Modal */}
+      {isCompleteModalOpen && selectedJob && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`rounded-lg shadow-xl max-w-md w-full transition-colors duration-300 ${isDarkMode ? 'bg-[#1E2A38]' : 'bg-white'}`}>
+            {/* Modal Header */}
+            <div className={`flex justify-between items-center p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Complete Job</h2>
+              <button
+                onClick={() => {
+                  setIsCompleteModalOpen(false);
+                  setCompleteReportText('');
+                  setCompleteRepairItem('');
+                  setCompleteRepairAmount('');
+                }}
+                className={`p-1 rounded hover:opacity-70 transition ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Job: {selectedJob.title}
+                </label>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Completion Notes
+                </label>
+                <textarea
+                  value={completeReportText}
+                  onChange={(e) => setCompleteReportText(e.target.value)}
+                  placeholder="Summary of work completed (optional)"
+                  className={`w-full px-4 py-3 rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isDarkMode
+                      ? 'bg-[#27384a] border-gray-600 text-white placeholder-gray-500'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                  }`}
+                  rows="4"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Repaired Item *
+                </label>
+                <input
+                  type="text"
+                  value={completeRepairItem}
+                  onChange={(e) => setCompleteRepairItem(e.target.value)}
+                  placeholder="e.g., Brake pads replacement"
+                  className={`w-full px-4 py-2.5 rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isDarkMode
+                      ? 'bg-[#27384a] border-gray-600 text-white placeholder-gray-500'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Repair Amount *
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={completeRepairAmount}
+                  onChange={(e) => setCompleteRepairAmount(e.target.value)}
+                  placeholder="0.00"
+                  className={`w-full px-4 py-2.5 rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isDarkMode
+                      ? 'bg-[#27384a] border-gray-600 text-white placeholder-gray-500'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className={`flex gap-3 p-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <button
+                onClick={() => {
+                  setIsCompleteModalOpen(false);
+                  setCompleteReportText('');
+                  setCompleteRepairItem('');
+                  setCompleteRepairAmount('');
+                }}
+                className={`flex-1 px-4 py-2 rounded font-medium text-sm transition ${isDarkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-200 text-gray-900 hover:bg-gray-300'}`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitCompleteJob}
+                disabled={completeLoading || !completeRepairItem.trim() || completeRepairAmount === ''}
+                className={`flex-1 px-4 py-2 rounded font-medium text-sm text-white transition ${completeLoading ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
+              >
+                {completeLoading ? 'Completing...' : 'Complete Job'}
               </button>
             </div>
           </div>

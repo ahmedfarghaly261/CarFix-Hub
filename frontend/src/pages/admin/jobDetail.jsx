@@ -116,6 +116,15 @@ export default function JobDetailPage() {
   const labelClass = `text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`;
   const valueClass = `text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`;
   const subValueClass = `text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`;
+  const formatMoney = (value) => (Number.isFinite(value) ? value.toFixed(2) : '0.00');
+  const reportedRepairs = (job.iterations || [])
+    .filter((iteration) => Number.isFinite(iteration?.cost?.total))
+    .map((iteration, index) => ({
+      id: iteration._id || `iteration-${index}`,
+      description: iteration.description || `Repair item ${index + 1}`,
+      total: iteration.cost.total
+    }));
+  const reportedTotal = reportedRepairs.reduce((sum, item) => sum + item.total, 0);
 
   return (
     <div className={`min-h-screen transition-colors ${isDarkMode ? 'bg-[#101828]' : 'bg-gray-50'}`}>
@@ -220,6 +229,23 @@ export default function JobDetailPage() {
                   <p className={`text-sm italic ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                     No report submitted by the mechanic yet.
                   </p>
+                )}
+                {reportedRepairs.length > 0 && (
+                  <div className="mt-4">
+                    <p className={labelClass}>Reported Repairs</p>
+                    <div className={`mt-2 rounded-lg border p-3 space-y-2 ${isDarkMode ? 'border-gray-700 bg-[#27384a]' : 'border-gray-200 bg-gray-50'}`}>
+                      {reportedRepairs.map((item) => (
+                        <div key={item.id} className={`flex items-center justify-between text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                          <span className="pr-4">{item.description}</span>
+                          <span className={`font-semibold ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>${formatMoney(item.total)}</span>
+                        </div>
+                      ))}
+                      <div className={`pt-2 border-t flex items-center justify-between text-sm font-semibold ${isDarkMode ? 'border-gray-700 text-gray-100' : 'border-gray-200 text-gray-800'}`}>
+                        <span>Reported Total</span>
+                        <span className={isDarkMode ? 'text-green-300' : 'text-green-600'}>${formatMoney(reportedTotal)}</span>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -400,6 +426,24 @@ export default function JobDetailPage() {
                       className={`w-full pl-9 pr-3 py-2 rounded-lg border text-sm ${isDarkMode ? 'bg-[#27384a] border-gray-700 text-gray-200 placeholder-gray-500' : 'bg-white border-gray-300 text-gray-700 placeholder-gray-400'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                     />
                   </div>
+                  {reportedRepairs.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setInvoiceAmount(String(reportedTotal))}
+                      disabled={job.invoiceSent}
+                      className={`mt-2 text-xs font-medium px-3 py-1 rounded transition-colors ${
+                        job.invoiceSent
+                          ? isDarkMode
+                            ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : isDarkMode
+                            ? 'bg-[#1f2f3f] text-blue-300 hover:bg-[#2b3c50]'
+                            : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                      }`}
+                    >
+                      Use reported total (${formatMoney(reportedTotal)})
+                    </button>
+                  )}
                   <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                     Leave empty to use the calculated total.
                   </p>
