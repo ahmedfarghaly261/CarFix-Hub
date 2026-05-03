@@ -353,7 +353,7 @@ router.put('/jobs/:id/update', mechanicOnly, async (req, res) => {
 // ============ COMPLETE JOB ============
 router.put('/jobs/:id/complete', mechanicOnly, async (req, res) => {
   try {
-    const { notes, cost } = req.body;
+    const { notes, cost, reportDetails, repairItem, repairAmount } = req.body;
     
     console.log(`[PUT /jobs/:id/complete] Mechanic ${req.user._id} marking job ${req.params.id} as complete`);
     
@@ -383,6 +383,31 @@ router.put('/jobs/:id/complete', mechanicOnly, async (req, res) => {
     // Auto-assign job to mechanic's workshop if unassigned
     if (!job.workshopId) {
       job.workshopId = req.user.workshopId;
+    }
+
+    if (reportDetails) {
+      job.reportDetails = reportDetails;
+    }
+
+    const hasRepairItem = typeof repairItem === 'string' && repairItem.trim() !== '';
+    const hasRepairAmount = repairAmount != null && repairAmount !== '';
+
+    if (hasRepairItem || hasRepairAmount) {
+      const parsedAmount = Number(repairAmount);
+      if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
+        return res.status(400).json({ message: 'Valid repair amount is required' });
+      }
+
+      job.iterations.push({
+        description: hasRepairItem ? repairItem.trim() : 'Repair work',
+        mechanicNotes: reportDetails || notes || '',
+        status: 'completed',
+        cost: {
+          total: parsedAmount
+        },
+        mechanicId: req.user._id,
+        completedAt: new Date()
+      });
     }
 
     job.status = 'completed';
