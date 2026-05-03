@@ -101,8 +101,8 @@ export const getAllJobs = () =>
 export const getJobById = (jobId) =>
   BaseAPI.get(`/admin/jobs/${jobId}`);
 
-export const sendInvoice = (jobId) =>
-  BaseAPI.post(`/admin/jobs/${jobId}/send-invoice`);
+export const sendInvoice = (jobId, amount = null) =>
+  BaseAPI.post(`/admin/jobs/${jobId}/send-invoice`, amount == null ? {} : { amount });
 
 export const setMechanicSalary = (jobId, mechanicSalary) =>
   BaseAPI.put(`/admin/jobs/${jobId}/salary`, { mechanicSalary });

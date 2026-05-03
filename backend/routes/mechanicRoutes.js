@@ -59,7 +59,8 @@ router.get('/jobs', mechanicOnly, async (req, res) => {
       ]
     })
       .populate('userId', 'name email phone')
-      .populate('carId', 'make model year plate')
+      .populate('carId', 'make model year licensePlate')
+      .populate('workshopId', 'name address phone')
       .sort({ createdAt: -1 });
 
     console.log('Jobs found:', jobs.length);
@@ -84,7 +85,8 @@ router.get('/jobs/:id', mechanicOnly, async (req, res) => {
   try {
     const job = await RepairRequest.findById(req.params.id)
       .populate('userId', 'name email phone')
-      .populate('carId', 'make model year plate mileage');
+      .populate('carId', 'make model year licensePlate mileage')
+      .populate('workshopId', 'name address phone');
     
     if (!job) return res.status(404).json({ message: 'Job not found' });
     
@@ -109,7 +111,7 @@ router.get('/appointments', mechanicOnly, async (req, res) => {
       ]
     })
       .populate('userId', 'name email phone')
-      .populate('carId', 'make model year')
+      .populate('carId', 'make model year licensePlate')
       .sort({ estimatedCompletionDate: 1 });
     res.json(appointments);
   } catch (error) {
@@ -127,7 +129,7 @@ router.get('/in-progress', mechanicOnly, async (req, res) => {
       ]
     })
       .populate('userId', 'name email phone')
-      .populate('carId', 'make model year plate');
+      .populate('carId', 'make model year licensePlate');
     res.json(jobs);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -144,7 +146,7 @@ router.get('/completed', mechanicOnly, async (req, res) => {
       ]
     })
       .populate('userId', 'name email phone')
-      .populate('carId', 'make model year')
+      .populate('carId', 'make model year licensePlate')
       .sort({ actualCompletionDate: -1 });
     res.json(jobs);
   } catch (error) {
@@ -288,7 +290,7 @@ router.post('/jobs/:id/update', mechanicOnly, async (req, res) => {
 // ============ ADD WORK REPORT ============
 router.put('/jobs/:id/update', mechanicOnly, async (req, res) => {
   try {
-    const { reportDetails } = req.body;
+    const { reportDetails, repairItem, repairAmount } = req.body;
     
     // REQUIREMENT: Mechanic must be assigned to a workshop
     if (!req.user.workshopId) {
@@ -317,6 +319,27 @@ router.put('/jobs/:id/update', mechanicOnly, async (req, res) => {
     // Add or update report details
     if (reportDetails) {
       job.reportDetails = reportDetails;
+    }
+
+    const hasRepairItem = typeof repairItem === 'string' && repairItem.trim() !== '';
+    const hasRepairAmount = repairAmount != null && repairAmount !== '';
+
+    if (hasRepairItem || hasRepairAmount) {
+      const parsedAmount = Number(repairAmount);
+      if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
+        return res.status(400).json({ message: 'Valid repair amount is required' });
+      }
+
+      job.iterations.push({
+        description: hasRepairItem ? repairItem.trim() : 'Repair work',
+        mechanicNotes: reportDetails || '',
+        status: 'completed',
+        cost: {
+          total: parsedAmount
+        },
+        mechanicId: req.user._id,
+        completedAt: new Date()
+      });
     }
     
     await job.save();

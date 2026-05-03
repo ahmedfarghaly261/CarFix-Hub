@@ -451,7 +451,7 @@ router.get('/jobs', adminOnly, async (req, res) => {
   try {
     const jobs = await RepairRequest.find()
       .populate('userId', 'name email phone')
-      .populate('carId', 'make model year plate')
+      .populate('carId', 'make model year licensePlate')
       .populate('workshopId', 'name address')
       .populate('assignedTo', 'name email phone specializations')
       .sort({ createdAt: -1 });
@@ -465,7 +465,7 @@ router.get('/jobs/:id', adminOnly, async (req, res) => {
   try {
     const job = await RepairRequest.findById(req.params.id)
       .populate('userId', 'name email phone address city')
-      .populate('carId', 'make model year plate mileage')
+      .populate('carId', 'make model year licensePlate mileage')
       .populate('workshopId', 'name address phone')
       .populate('assignedTo', 'name email phone specializations rating');
     if (!job) return res.status(404).json({ message: 'Job not found' });
@@ -478,20 +478,31 @@ router.get('/jobs/:id', adminOnly, async (req, res) => {
 // Send invoice to user
 router.post('/jobs/:id/send-invoice', adminOnly, async (req, res) => {
   try {
+    const { amount } = req.body;
     const job = await RepairRequest.findById(req.params.id)
       .populate('userId', 'name email');
     if (!job) return res.status(404).json({ message: 'Job not found' });
 
+    if (amount != null) {
+      const parsedAmount = Number(amount);
+      if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
+        return res.status(400).json({ message: 'Valid invoice amount is required' });
+      }
+      job.billingAmount = parsedAmount;
+    }
+
     job.invoiceSent = true;
     job.invoiceSentAt = new Date();
     await job.save();
+
+    const invoiceAmount = job.billingAmount ?? job.totalCost;
 
     // Notify the user about the invoice
     await Notification.create({
       recipient: job.userId._id,
       type: 'invoice',
       title: 'Invoice Received',
-      message: `An invoice of $${job.totalCost} has been sent for your repair "${job.title}"`,
+      message: `An invoice of $${invoiceAmount} has been sent for your repair "${job.title}"`,
       relatedTo: {
         model: 'RepairRequest',
         id: job._id

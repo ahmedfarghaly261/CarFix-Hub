@@ -77,6 +77,10 @@ const repairRequestSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  billingAmount: {
+    type: Number,
+    default: null
+  },
   estimatedCompletionDate: Date,
   actualCompletionDate: Date,
   assignedTo: {
@@ -109,7 +113,11 @@ repairRequestSchema.pre('save', function(next) {
         const partsCost = iteration.cost?.parts?.reduce((sum, part) => 
           sum + (part.price * part.quantity), 0) || 0;
         const laborCost = iteration.cost?.labor || 0;
-        return total + partsCost + laborCost;
+        const explicitTotal = iteration.cost?.total;
+        const iterationTotal = Number.isFinite(explicitTotal)
+          ? explicitTotal
+          : partsCost + laborCost;
+        return total + iterationTotal;
       }, 0);
     }
     next();
