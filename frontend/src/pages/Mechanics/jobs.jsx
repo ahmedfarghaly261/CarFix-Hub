@@ -17,6 +17,8 @@ export default function MechanicsJobsPage() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportText, setReportText] = useState('');
   const [reportLoading, setReportLoading] = useState(false);
+  const [repairItem, setRepairItem] = useState('');
+  const [repairAmount, setRepairAmount] = useState('');
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -48,14 +50,17 @@ export default function MechanicsJobsPage() {
             title: job.title,
             customer: job.userId?.name || 'Unknown',
             car: job.carId ? `${job.carId.year} ${job.carId.make} ${job.carId.model}` : 'Unknown',
-            plate: job.carId?.licensePlate || 'N/A',
+            plate: job.carId?.licensePlate || job.carId?.plate || 'N/A',
             date: job.requestedDate || 'Not set',
             time: 'TBD',
             duration: '1 hr',
             priority: job.priority || 'medium',
             status: job.status,
             description: job.description,
-            serviceType: job.serviceType || 'General Repair'
+            serviceType: job.serviceType || 'General Repair',
+            workshop: job.workshopId?.name || 'Unassigned',
+            totalCost: job.totalCost || 0,
+            reportDetails: job.reportDetails || ''
           }));
         
         console.log('✅ After filtering:', filteredJobs.length, 'jobs');
@@ -118,8 +123,13 @@ export default function MechanicsJobsPage() {
     setIsModalOpen(true);
   };
 
-  const handleAddReport = () => {
-    if (!selectedJob) return;
+  const handleAddReport = (job = null) => {
+    const targetJob = job || selectedJob;
+    if (!targetJob) return;
+    setSelectedJob(targetJob);
+    setReportText('');
+    setRepairItem('');
+    setRepairAmount('');
     setIsReportModalOpen(true);
   };
 
@@ -128,22 +138,41 @@ export default function MechanicsJobsPage() {
       alert('Please enter a report');
       return;
     }
+    if (!repairItem.trim()) {
+      alert('Please enter what was repaired');
+      return;
+    }
+
+    const parsedAmount = Number(repairAmount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
+      alert('Please enter a valid repair amount');
+      return;
+    }
 
     setReportLoading(true);
     try {
       // Update job with report
-      await API.put(`/mechanics/jobs/${selectedJob.id}/update`, {
-        reportDetails: reportText
+      const res = await API.put(`/mechanics/jobs/${selectedJob.id}/update`, {
+        reportDetails: reportText,
+        repairItem,
+        repairAmount: parsedAmount
       });
+      const updatedJob = res.data?.job;
       
       // Update local state
       setJobs(jobs.map(job =>
         job.id === selectedJob.id
-          ? { ...job, reportDetails: reportText }
+          ? {
+              ...job,
+              reportDetails: updatedJob?.reportDetails || reportText,
+              totalCost: updatedJob?.totalCost ?? job.totalCost
+            }
           : job
       ));
       
       setReportText('');
+      setRepairItem('');
+      setRepairAmount('');
       setIsReportModalOpen(false);
       alert('Report added successfully!');
     } catch (err) {
@@ -273,6 +302,17 @@ export default function MechanicsJobsPage() {
                   <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{job.customer} • {job.car} • {job.plate}</p>
                   <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{job.description}</p>
                   <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{job.date} • {job.time} • Est. {job.duration}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3 text-xs">
+                    <div className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                      <span className="font-semibold">Service:</span> {job.serviceType}
+                    </div>
+                    <div className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                      <span className="font-semibold">Workshop:</span> {job.workshop}
+                    </div>
+                    <div className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                      <span className="font-semibold">Cost:</span> ${job.totalCost}
+                    </div>
+                  </div>
                   <div className="flex gap-2 mt-3">
                     <button 
                       onClick={() => handleViewDetails(job)}
@@ -284,7 +324,7 @@ export default function MechanicsJobsPage() {
                         <button 
                           onClick={() => {
                             setSelectedJob(job);
-                            handleAddReport();
+                            handleAddReport(job);
                           }}
                           className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition text-sm">
                           Add Report
@@ -348,6 +388,11 @@ export default function MechanicsJobsPage() {
               </div>
 
               <div>
+                <label className={`block text-sm font-semibold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Workshop</label>
+                <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{selectedJob.workshop || 'Unassigned'}</p>
+              </div>
+
+              <div>
                 <label className={`block text-sm font-semibold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Service Type</label>
                 <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{selectedJob.serviceType}</p>
               </div>
@@ -365,6 +410,14 @@ export default function MechanicsJobsPage() {
                 <div>
                   <label className={`block text-sm font-semibold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Duration</label>
                   <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{selectedJob.duration}</p>
+                </div>
+                <div>
+                  <label className={`block text-sm font-semibold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Status</label>
+                  <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{selectedJob.status.replace('-', ' ')}</p>
+                </div>
+                <div>
+                  <label className={`block text-sm font-semibold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Cost</label>
+                  <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>${selectedJob.totalCost}</p>
                 </div>
               </div>
 
@@ -389,7 +442,7 @@ export default function MechanicsJobsPage() {
                   <button
                     onClick={() => {
                       setIsModalOpen(false);
-                      handleAddReport();
+                      handleAddReport(selectedJob);
                     }}
                     className="flex-1 px-4 py-2 rounded font-medium text-sm bg-orange-600 text-white hover:bg-orange-700 transition"
                   >
@@ -460,6 +513,41 @@ export default function MechanicsJobsPage() {
                   rows="5"
                 />
               </div>
+
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Repaired Item *
+                </label>
+                <input
+                  type="text"
+                  value={repairItem}
+                  onChange={(e) => setRepairItem(e.target.value)}
+                  placeholder="e.g., Brake pads replacement"
+                  className={`w-full px-4 py-2.5 rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isDarkMode 
+                      ? 'bg-[#27384a] border-gray-600 text-white placeholder-gray-500' 
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Repair Amount *
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={repairAmount}
+                  onChange={(e) => setRepairAmount(e.target.value)}
+                  placeholder="0.00"
+                  className={`w-full px-4 py-2.5 rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isDarkMode 
+                      ? 'bg-[#27384a] border-gray-600 text-white placeholder-gray-500' 
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                  }`}
+                />
+              </div>
             </div>
 
             {/* Modal Footer */}
@@ -468,6 +556,8 @@ export default function MechanicsJobsPage() {
                 onClick={() => {
                   setIsReportModalOpen(false);
                   setReportText('');
+                  setRepairItem('');
+                  setRepairAmount('');
                 }}
                 className={`flex-1 px-4 py-2 rounded font-medium text-sm transition ${isDarkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-200 text-gray-900 hover:bg-gray-300'}`}
               >
@@ -475,7 +565,7 @@ export default function MechanicsJobsPage() {
               </button>
               <button
                 onClick={handleSubmitReport}
-                disabled={reportLoading || !reportText.trim()}
+                disabled={reportLoading || !reportText.trim() || !repairItem.trim() || repairAmount === ''}
                 className={`flex-1 px-4 py-2 rounded font-medium text-sm text-white transition ${reportLoading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} disabled:opacity-50`}
               >
                 {reportLoading ? 'Saving...' : 'Save Report'}
