@@ -5,7 +5,7 @@ import {
   Droplet, Battery, Snowflake, Search, MapPin, ArrowRight, Plus, Car
 } from 'lucide-react';
 import { useUserTheme } from '../../../context/UserThemeContext';
-import BookAppointmentModal from './BookAppointmentModal';
+import BookAppointmentModal from '../appointments/BookAppointmentModal';
 import { useAuth } from '../../../context/AuthContext';
 import { getAllAppointments, getUserCars } from '../../../services/userService';
 
