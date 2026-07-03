@@ -17,7 +17,7 @@ import {
   Mail
 } from 'lucide-react';
 import { useAdminTheme } from '../../context/AdminThemeContext';
-import { getJobById, sendInvoice, setMechanicSalary } from '../../services/adminService';
+import { getJobById, sendInvoice, setMechanicSalary, getMechanics, assignMechanic } from '../../services/adminService';
 
 const statusClasses = {
   'completed': 'bg-green-100 text-green-700',
@@ -37,6 +37,9 @@ export default function JobDetailPage() {
   const [savingSalary, setSavingSalary] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState(false);
   const [invoiceAmount, setInvoiceAmount] = useState('');
+  const [mechanicsList, setMechanicsList] = useState([]);
+  const [selectedMechanic, setSelectedMechanic] = useState('');
+  const [assigningMechanic, setAssigningMechanic] = useState(false);
 
   const fetchJob = useCallback(async () => {
     setLoading(true);
@@ -52,9 +55,33 @@ export default function JobDetailPage() {
     }
   }, [jobId]);
 
+  const fetchMechanics = useCallback(async () => {
+    try {
+      const res = await getMechanics();
+      setMechanicsList(res.data || []);
+    } catch (err) {
+      console.error('Failed to load mechanics', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchJob();
-  }, [fetchJob]);
+    fetchMechanics();
+  }, [fetchJob, fetchMechanics]);
+
+  const handleAssignMechanic = async () => {
+    if (!selectedMechanic || !job) return;
+    setAssigningMechanic(true);
+    try {
+      await assignMechanic(job._id, { mechanicId: selectedMechanic });
+      alert('Mechanic assigned successfully!');
+      fetchJob();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to assign mechanic');
+    } finally {
+      setAssigningMechanic(false);
+    }
+  };
 
   const handleSendInvoice = async () => {
     if (!job) return;
@@ -365,6 +392,32 @@ export default function JobDetailPage() {
                 ) : (
                   <p className={`text-sm italic ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Not assigned</p>
                 )}
+
+                {/* Mechanic Assignment Form */}
+                <div className={`mt-4 pt-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <p className={labelClass}>Assign / Re-assign</p>
+                  <div className="flex gap-2 mt-2">
+                    <select
+                      value={selectedMechanic}
+                      onChange={(e) => setSelectedMechanic(e.target.value)}
+                      className={`flex-1 rounded-lg border text-sm py-2 px-3 ${isDarkMode ? 'bg-[#27384a] border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    >
+                      <option value="">Select Mechanic...</option>
+                      {mechanicsList.map(mech => (
+                        <option key={mech._id} value={mech._id}>
+                          {mech.name} {mech.workshopId ? `(${mech.workshopId.name})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handleAssignMechanic}
+                      disabled={assigningMechanic || !selectedMechanic}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      {assigningMechanic ? 'Assigning...' : 'Assign'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -1,25 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarDays, MapPin, Mail, Phone } from "lucide-react";
+import { CalendarDays, MapPin, Mail, Phone, Plus } from "lucide-react";
 import { getAllAppointments, cancelAppointment } from "../../../services/userService";
 import { useUserTheme } from '../../../context/UserThemeContext';
+import CreateAppointmentModal from './CreateAppointmentModal';
 
 const Appointments = () => {
   const { isDarkMode } = useUserTheme();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All Appointments');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const fetchAppointments = async () => {
+    setLoading(true);
+    try {
+      const res = await getAllAppointments();
+      setAppointments(res.data || []);
+    } catch (err) {
+      console.error('Failed to load appointments', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAppointments = async () => {
-      try {
-        const res = await getAllAppointments();
-        setAppointments(res.data || []);
-      } catch (err) {
-        console.error('Failed to load appointments', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchAppointments();
   }, []);
 
@@ -38,12 +42,24 @@ const Appointments = () => {
     if (filter === 'Cancelled') return a.status === 'cancelled';
     return true;
   });
+
   return (
     <div className={`min-h-screen transition-colors ${isDarkMode ? 'bg-[#101828]' : 'bg-white'}`}>
       <div className={`p-6 max-w-5xl mx-auto font-sans`}>
-      {/* Page Title */}
-      <h1 className={`text-3xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>My Appointments</h1>
-      <p className={`mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Manage your service appointments</p>
+      {/* Page Title & Action */}
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h1 className={`text-3xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>My Appointments</h1>
+          <p className={`mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Manage your service appointments</p>
+        </div>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition font-medium"
+        >
+          <Plus className="w-5 h-5" />
+          Book New Repair
+        </button>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-3 mb-6">
@@ -142,7 +158,13 @@ const Appointments = () => {
           <div className="text-center py-8"><p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>No appointments found</p></div>
         )}
       </div>
-    </div>
+      </div>
+      
+      <CreateAppointmentModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchAppointments}
+      />
     </div>
   );
 };

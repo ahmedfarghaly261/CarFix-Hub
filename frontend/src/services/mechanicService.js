@@ -24,6 +24,9 @@ export const completeJob = (jobId, completionData = {}) =>
 export const sendJobUpdate = (jobId, updateData) => 
   API.post(`/mechanics/jobs/${jobId}/update`, updateData);
 
+export const addWorkReport = (jobId, reportData) =>
+  API.put(`/mechanics/jobs/${jobId}/update`, reportData);
+
 /////////////////////////////////////////////
 
 // APPOINTMENTS

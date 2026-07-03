@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../context/AuthContext';
+
 import { useUserTheme } from '../../../context/UserThemeContext';
 import API from '../../../services/api';
 import { Star, ArrowLeft } from 'lucide-react';
@@ -8,7 +8,7 @@ import { Star, ArrowLeft } from 'lucide-react';
 export default function RepairDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+
   const { isDarkMode } = useUserTheme();
   
   const [repair, setRepair] = useState(null);
@@ -170,14 +170,48 @@ export default function RepairDetails() {
 
         <div className="mb-6">
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>
-            Mechanic's Report
+            Mechanic's Summary
           </p>
           <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-[#27384a]' : 'bg-gray-50'}`}>
             <p className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
-              {repair.reportDetails || 'No report provided'}
+              {repair.reportDetails || 'No summary provided'}
             </p>
           </div>
         </div>
+
+        {repair.iterations && repair.iterations.length > 0 && (
+          <div className="mb-6">
+            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>
+              Detailed Work History
+            </p>
+            <div className="space-y-3">
+              {repair.iterations.map((iteration, idx) => (
+                <div key={idx} className={`p-4 rounded-lg border ${isDarkMode ? 'bg-[#1E2A38] border-gray-700' : 'bg-white border-gray-200'}`}>
+                  <div className="flex justify-between items-start mb-2">
+                    <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                      {iteration.description || `Update #${idx + 1}`}
+                    </p>
+                    {iteration.cost?.total > 0 && (
+                      <span className={`font-semibold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                        ${iteration.cost.total}
+                      </span>
+                    )}
+                  </div>
+                  {iteration.mechanicNotes && (
+                    <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Notes: {iteration.mechanicNotes}
+                    </p>
+                  )}
+                  {iteration.completedAt && (
+                    <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                      {new Date(iteration.completedAt).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div>
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>
