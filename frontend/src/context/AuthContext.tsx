@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { loginUser, logoutUser } from '../services/userService';
-import { User } from '../types';
+import { loginUser, logoutUser } from '@/modules/auth/services/auth.service';
+import { User } from '@/types';
 
 interface AuthContextType {
   user: User | null;
@@ -16,7 +16,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const raw = localStorage.getItem('user');
       return raw ? JSON.parse(raw) : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   });
@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async (): Promise<void> => {
     try {
       await logoutUser();
-    } catch (e) {
+    } catch {
       // ignore
     }
     setUser(null);
@@ -52,6 +52,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 };
 
+/* eslint-disable-next-line react-refresh/only-export-components */
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -60,4 +61,6 @@ export const useAuth = (): AuthContextType => {
   return context;
 };
 
+/* eslint-disable-next-line react-refresh/only-export-components */
 export default AuthContext;
+
