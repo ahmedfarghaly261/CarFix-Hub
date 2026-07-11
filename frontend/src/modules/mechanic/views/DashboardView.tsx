@@ -1,14 +1,17 @@
 ﻿import { useState, useEffect } from "react";
 import { JobDetailsModal } from "@/components/common";
+import { useCallback } from "react";
 import { useMechanicsTheme } from "@/context/MechanicsThemeContext";
 import { useAuth } from "@/context/AuthContext";
-import { getMechanicDashboard, getMechanicJobs } from "@/modules/mechanic/services/mechanic.service";
+import { useToast } from "@/components/ui/useToast";
+import { getMechanicDashboard, getMechanicJobs, sendJobUpdate, startJob } from "@/modules/mechanic/services/mechanic.service";
 import API from "@/services/api.service";
 import { Bell } from "lucide-react";
 
 export default function MechanicsDashboard() {
   const { user } = useAuth();
   const { isDarkMode } = useMechanicsTheme();
+  const toast = useToast();
   const [selectedJob, setSelectedJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -28,21 +31,7 @@ export default function MechanicsDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
-    if (user) {
-      fetchDashboardData();
-      fetchNotifications();
-      
-      // Poll for new notifications every 10 seconds
-      const interval = setInterval(() => {
-        fetchNotifications();
-      }, 10000);
-
-      return () => clearInterval(interval);
-    }
-  }, [user]);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -77,12 +66,13 @@ export default function MechanicsDashboard() {
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       setError('Failed to load dashboard data');
+      toast.error('Failed to load mechanic dashboard.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const res = await API.get('/notifications');
       setNotifications(res.data || []);
@@ -93,15 +83,43 @@ export default function MechanicsDashboard() {
     } catch (err) {
       console.error('Error fetching notifications:', err);
     }
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchDashboardData();
+      fetchNotifications();
+
+      const interval = setInterval(() => {
+        fetchNotifications();
+      }, 10000);
+
+      return () => clearInterval(interval);
+    }
+  }, [fetchDashboardData, fetchNotifications, user]);
+
+  const handleStartWork = async (jobId) => {
+    try {
+      await startJob(jobId);
+      setJobs((current) =>
+        current.map((job) => (job.id === jobId ? { ...job, status: 'in-progress' } : job)),
+      );
+      setSelectedJob(null);
+      toast.success('Job started successfully.');
+    } catch (err) {
+      console.error('Error starting job:', err);
+      toast.error(err.response?.data?.message || 'Failed to start job.');
+    }
   };
 
-  const handleStartWork = (jobId) => {
-    console.log("Starting work on job:", jobId);
-    setSelectedJob(null);
-  };
-
-  const handleSendUpdate = (jobId, message) => {
-    console.log("Sending update for job", jobId, ":", message);
+  const handleSendUpdate = async (jobId, message) => {
+    try {
+      await sendJobUpdate(jobId, { message });
+      toast.success('Work update sent.');
+    } catch (err) {
+      console.error('Error sending job update:', err);
+      toast.error(err.response?.data?.message || 'Failed to send update.');
+    }
   };
 
   if (loading) {
@@ -129,6 +147,14 @@ export default function MechanicsDashboard() {
           </div>
         )}
       </div>
+
+      {error && (
+        <div className={`mb-6 rounded-lg border p-4 text-sm font-medium ${
+          isDarkMode ? 'border-red-500/20 bg-red-500/10 text-red-300' : 'border-red-200 bg-red-50 text-red-700'
+        }`}>
+          {error}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">

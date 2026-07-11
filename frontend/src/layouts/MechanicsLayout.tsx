@@ -8,13 +8,13 @@ const MechanicsLayout = () => {
   const { isDarkMode } = useMechanicsTheme();
   
   return (
-    <div className={`flex min-h-screen ${isDarkMode ? 'bg-[#101828]' : 'bg-gray-50'}`}>
+    <div className={`flex min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#0B1120]' : 'bg-slate-50'}`}>
       <MechanicsSidebar />
-      <div className="flex flex-col flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
         <MechanicsHeader />
-        <div className="flex-1">
+        <main className="flex-1">
           <Outlet />
-        </div>
+        </main>
       </div>
     </div>
   );
