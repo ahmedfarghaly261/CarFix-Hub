@@ -23,6 +23,7 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "allowJs": true,
+    "ignoreDeprecations": "6.0",
     "types": ["vite/client", "node"],
     "baseUrl": ".",
     "paths": {
