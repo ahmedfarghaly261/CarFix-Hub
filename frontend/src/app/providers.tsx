@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react'
 import { AuthProvider } from '@/context/AuthContext'
+import { ToastProvider } from '@/components/ui/ToastProvider'
 
 interface AppProvidersProps {
   children: ReactNode
@@ -12,7 +13,9 @@ interface AppProvidersProps {
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   return (
     <AuthProvider>
-      {children}
+      <ToastProvider>
+        {children}
+      </ToastProvider>
     </AuthProvider>
   )
 }
