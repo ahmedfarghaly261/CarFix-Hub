@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useMechanicsTheme } from '@/context/MechanicsThemeContext';
+import { useToast } from '@/components/ui/useToast';
 import { getMechanicJobs, startJob } from '@/modules/mechanic/services/mechanic.service';
 import API from '@/services/api.service';
 import { X, Clock, Calendar, Car, Wrench, DollarSign, MapPin, Search, AlertCircle, FileText, CheckCircle, PlayCircle, AlertTriangle } from 'lucide-react';
@@ -8,6 +9,7 @@ import { X, Clock, Calendar, Car, Wrench, DollarSign, MapPin, Search, AlertCircl
 export default function MechanicsJobsPage() {
   const { user } = useAuth();
   const { isDarkMode } = useMechanicsTheme();
+  const toast = useToast();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -29,23 +31,7 @@ export default function MechanicsJobsPage() {
     const fetchJobs = async () => {
       try {
         setLoading(true);
-        console.log('📍 Fetching jobs for mechanic:', {
-          id: user?._id,
-          name: user?.name,
-          workshopId: user?.workshopId
-        });
-        
         const response = await getMechanicJobs();
-        console.log('📦 API Response - Total jobs returned:', response.data?.length);
-        
-        if (response.data && response.data.length > 0) {
-          console.log('📋 Job details:');
-          response.data.forEach((job, idx) => {
-            console.log(`  ${idx + 1}. ${job.title} (${job.status}) - assignedTo: ${job.assignedTo}, workshop: ${job.workshopId}`);
-          });
-        } else {
-          console.log('⚠️ No jobs returned from API');
-        }
         
         // Filter for all non-completed jobs (pending, assigned, in-progress)
         const filteredJobs = response.data
@@ -68,12 +54,12 @@ export default function MechanicsJobsPage() {
             reportDetails: job.reportDetails || ''
           }));
         
-        console.log('✅ After filtering:', filteredJobs.length, 'jobs');
         setJobs(filteredJobs);
         setError(null);
       } catch (err) {
         console.error('❌ Error fetching jobs:', err);
         setError('Failed to load jobs');
+        toast.error('Failed to load assigned jobs.');
         setJobs([]);
       } finally {
         setLoading(false);
@@ -83,7 +69,7 @@ export default function MechanicsJobsPage() {
     if (user) {
       fetchJobs();
     }
-  }, [user]);
+  }, [user, toast]);
 
   const getPriorityColor = (priority, isDarkMode) => {
     if (isDarkMode) {
@@ -140,17 +126,17 @@ export default function MechanicsJobsPage() {
 
   const handleSubmitReport = async () => {
     if (!reportText.trim()) {
-      alert('Please enter a report');
+      toast.error('Please enter a report.');
       return;
     }
     if (!repairItem.trim()) {
-      alert('Please enter what was repaired');
+      toast.error('Please enter what was repaired.');
       return;
     }
 
     const parsedAmount = Number(repairAmount);
     if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
-      alert('Please enter a valid repair amount');
+      toast.error('Please enter a valid repair amount.');
       return;
     }
 
@@ -179,10 +165,10 @@ export default function MechanicsJobsPage() {
       setRepairItem('');
       setRepairAmount('');
       setIsReportModalOpen(false);
-      alert('Report added successfully!');
+      toast.success('Report added successfully.');
     } catch (err) {
       console.error('Error adding report:', err);
-      alert(err.response?.data?.message || 'Failed to add report');
+      toast.error(err.response?.data?.message || 'Failed to add report.');
     } finally {
       setReportLoading(false);
     }
@@ -202,13 +188,13 @@ export default function MechanicsJobsPage() {
     if (!selectedJob) return;
 
     if (!completeRepairItem.trim()) {
-      alert('Please enter what was repaired');
+      toast.error('Please enter what was repaired.');
       return;
     }
 
     const parsedAmount = Number(completeRepairAmount);
     if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
-      alert('Please enter a valid repair amount');
+      toast.error('Please enter a valid repair amount.');
       return;
     }
 
@@ -230,10 +216,10 @@ export default function MechanicsJobsPage() {
       setIsCompleteModalOpen(false);
       setIsModalOpen(false);
       setSelectedJob(null);
-      alert('Job marked as completed!');
+      toast.success('Job marked as completed.');
     } catch (err) {
       console.error('Error completing job:', err);
-      alert(err.response?.data?.message || 'Failed to complete job');
+      toast.error(err.response?.data?.message || 'Failed to complete job.');
     } finally {
       setCompleteLoading(false);
     }
@@ -252,7 +238,7 @@ export default function MechanicsJobsPage() {
           job.id === selectedJob.id ? { ...job, status: newStatus } : job
         ));
         
-        alert('Job started successfully!');
+        toast.success('Job started successfully.');
       }
       
       setIsModalOpen(false);
@@ -269,7 +255,7 @@ export default function MechanicsJobsPage() {
         displayMsg = 'You are not authorized to work on this job.';
       }
       
-      alert(displayMsg);
+      toast.error(displayMsg);
     } finally {
       setModalLoading(false);
     }
@@ -390,6 +376,18 @@ export default function MechanicsJobsPage() {
                   <Search className="w-4 h-4" /> View Details
                 </button>
                 
+                {job.status === 'in-progress' && (
+                  <button
+                    onClick={() => handleAddReport(job)}
+                    className={`flex-1 px-4 py-2.5 rounded-xl font-semibold transition flex justify-center items-center gap-2 text-sm ${
+                      isDarkMode
+                        ? 'bg-blue-500/10 text-blue-300 hover:bg-blue-500/15 border border-blue-500/20'
+                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                    }`}>
+                    <FileText className="w-4 h-4" /> Add Report
+                  </button>
+                )}
+
                 {(job.status === 'in-progress' || job.status === 'assigned') && (
                   <button 
                     onClick={() => {

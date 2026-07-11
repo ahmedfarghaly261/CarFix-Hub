@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { X, FileText, Wrench, DollarSign, AlertCircle } from 'lucide-react';
 import { completeJob, addWorkReport } from '@/modules/mechanic/services/mechanic.service';
 import { useMechanicsTheme } from '@/context/MechanicsThemeContext';
+import { useToast } from '@/components/ui/useToast';
 
 export default function WorkReportModal({ isOpen, onClose, onSuccess, job }) {
   const { isDarkMode } = useMechanicsTheme();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     reportDetails: '',
     repairItem: '',
@@ -32,15 +34,18 @@ export default function WorkReportModal({ isOpen, onClose, onSuccess, job }) {
     setError('');
     setIsSubmitting(true);
     try {
+      const jobId = job.id || job._id;
       if (isCompleting) {
-        await completeJob(job._id, formData);
+        await completeJob(jobId, formData);
       } else {
-        await addWorkReport(job._id, formData);
+        await addWorkReport(jobId, formData);
       }
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to submit report');
+      const message = err.response?.data?.message || err.message || 'Failed to submit report';
+      setError(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -61,7 +66,8 @@ export default function WorkReportModal({ isOpen, onClose, onSuccess, job }) {
 
         <h2 className="text-2xl font-bold mb-6">Work Report</h2>
         <p className={`mb-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          Update job for {job.carId?.make} {job.carId?.model} ({job.carId?.licensePlate})
+          Update {job.title || 'job'} for {job.car || `${job.carId?.make || ''} ${job.carId?.model || ''}`.trim() || 'vehicle'}
+          {job.plate || job.carId?.licensePlate ? ` (${job.plate || job.carId?.licensePlate})` : ''}
         </p>
 
         {error && (

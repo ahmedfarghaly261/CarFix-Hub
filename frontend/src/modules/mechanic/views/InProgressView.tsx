@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useMechanicsTheme } from '@/context/MechanicsThemeContext';
+import { useToast } from '@/components/ui/useToast';
 import { getMechanicJobs } from '@/modules/mechanic/services/mechanic.service';
-import API from '@/services/api.service';
-import { X, Clock, Car, DollarSign, MapPin, CheckCircle, FileText, AlertCircle, TrendingUp, Edit } from 'lucide-react';
+import { Clock, Car, CheckCircle, AlertCircle, TrendingUp, Edit } from 'lucide-react';
 import WorkReportModal from '@/modules/mechanic/components/WorkReportModal';
 
 export default function MechanicsInProgressPage() {
   const { user } = useAuth();
   const { isDarkMode } = useMechanicsTheme();
+  const toast = useToast();
   const [inProgressJobs, setInProgressJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,42 +18,43 @@ export default function MechanicsInProgressPage() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchInProgressJobs = async () => {
-      try {
-        setLoading(true);
-        const response = await getMechanicJobs();
-        
-        // Filter for in-progress mapped jobs
-        const filteredJobs = response.data
-          .filter(job => job.status === 'in-progress')
-          .map(job => ({
-            id: job._id,
-            title: job.title,
-            customer: job.userId?.name || 'Unknown',
-            car: job.carId ? `${job.carId.year} ${job.carId.make} ${job.carId.model}` : 'Unknown',
-            plate: job.carId?.licensePlate || job.carId?.plate || 'N/A',
-            startTime: job.requestedDate || 'Not set',
-            estimatedCompletion: 'TBD',
-            progress: 60,
-            description: job.description
-          }));
-        
-        setInProgressJobs(filteredJobs);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching in-progress jobs:', err);
-        setError('Failed to load in-progress jobs');
-        setInProgressJobs([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchInProgressJobs = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await getMechanicJobs();
 
+      const filteredJobs = response.data
+        .filter(job => job.status === 'in-progress')
+        .map(job => ({
+          id: job._id,
+          title: job.title,
+          customer: job.userId?.name || 'Unknown',
+          car: job.carId ? `${job.carId.year} ${job.carId.make} ${job.carId.model}` : 'Unknown',
+          plate: job.carId?.licensePlate || job.carId?.plate || 'N/A',
+          startTime: job.requestedDate || 'Not set',
+          estimatedCompletion: 'TBD',
+          progress: 60,
+          description: job.description,
+          reportDetails: job.reportDetails || ''
+        }));
+
+      setInProgressJobs(filteredJobs);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching in-progress jobs:', err);
+      setError('Failed to load in-progress jobs');
+      toast.error('Failed to load in-progress jobs.');
+      setInProgressJobs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
     if (user) {
       fetchInProgressJobs();
     }
-  }, [user]);
+  }, [fetchInProgressJobs, user]);
 
   const handleOpenCompleteModal = (job) => {
     setSelectedJob(job);
@@ -171,13 +173,8 @@ export default function MechanicsInProgressPage() {
           setSelectedJob(null);
         }}
         onSuccess={() => {
-          // Refresh the jobs list
-          if (user) {
-            // Ideally we can call fetchInProgressJobs here, but since it's an effect let's just trigger a re-render or reload
-            window.location.reload(); 
-            // We use window.location.reload() for simplicity since fetchInProgressJobs isn't exposed outside useEffect,
-            // or we could extract fetchInProgressJobs. Let's extract fetchInProgressJobs first.
-          }
+          toast.success('Job report updated.');
+          fetchInProgressJobs();
         }}
       />
     </div>

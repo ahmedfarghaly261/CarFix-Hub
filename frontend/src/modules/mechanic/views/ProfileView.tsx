@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useMechanicsTheme } from '@/context/MechanicsThemeContext';
+import { useToast } from '@/components/ui/useToast';
 import API from '@/services/api.service';
 import { Save, X, Edit2 } from 'lucide-react';
 
 export default function MechanicsProfile() {
   const { user } = useAuth();
   const { isDarkMode } = useMechanicsTheme();
+  const toast = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
   const [profile, setProfile] = useState({
     name: '',
     email: '',
@@ -33,11 +34,7 @@ export default function MechanicsProfile() {
     specializations: '',
   });
 
-  useEffect(() => {
-    fetchProfile();
-  }, [user]);
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       const response = await API.get('/mechanics/profile');
       setProfile(response.data);
@@ -52,9 +49,13 @@ export default function MechanicsProfile() {
       });
     } catch (err) {
       console.error('Error fetching profile:', err);
-      setMessage('Failed to load profile');
+      toast.error('Failed to load profile.');
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile, user]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -67,7 +68,6 @@ export default function MechanicsProfile() {
   const handleSaveProfile = async () => {
     try {
       setLoading(true);
-      setMessage('');
 
       const updateData = {
         name: formData.name,
@@ -85,12 +85,10 @@ export default function MechanicsProfile() {
       const response = await API.put('/mechanics/profile', updateData);
       setProfile(response.data);
       setIsEditing(false);
-      setMessage('Profile updated successfully!');
-      
-      setTimeout(() => setMessage(''), 3000);
+      toast.success('Profile updated successfully.');
     } catch (err) {
       console.error('Error updating profile:', err);
-      setMessage(err.response?.data?.message || 'Failed to update profile');
+      toast.error(err.response?.data?.message || 'Failed to update profile.');
     } finally {
       setLoading(false);
     }
@@ -107,7 +105,6 @@ export default function MechanicsProfile() {
       specializations: profile.specializations?.join(', ') || '',
     });
     setIsEditing(false);
-    setMessage('');
   };
 
   return (
@@ -124,12 +121,6 @@ export default function MechanicsProfile() {
           </button>
         )}
       </div>
-
-      {message && (
-        <div className={`mb-4 p-4 rounded-lg ${message.includes('successfully') ? (isDarkMode ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800') : (isDarkMode ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-800')}`}>
-          {message}
-        </div>
-      )}
 
       {/* Profile Card */}
       <div className={`shadow rounded-lg transition-colors duration-300 ${isDarkMode ? 'bg-[#1E2A38] border border-gray-700' : 'bg-white border border-gray-200'}`}>
