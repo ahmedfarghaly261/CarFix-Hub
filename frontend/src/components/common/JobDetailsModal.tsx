@@ -1,6 +1,17 @@
 import React, { useState } from "react";
 import "./JobDetailsModal.css";
-import { X, Phone, MapPin, Wrench, Calendar, AlertCircle, Send } from "lucide-react";
+import {
+  AlertTriangle,
+  Calendar,
+  Car,
+  Cog,
+  FileText,
+  Phone,
+  Send,
+  UserRound,
+  Wrench,
+  X,
+} from "lucide-react";
 
 const JobDetailsModal = ({ isOpen, onClose, job, onStartWork, onSendUpdate }) => {
   const [updateMessage, setUpdateMessage] = useState("");
@@ -17,31 +28,24 @@ const JobDetailsModal = ({ isOpen, onClose, job, onStartWork, onSendUpdate }) =>
   return (
     <div className="job-modal-overlay">
       <div className="job-modal">
-        {/* Header */}
         <div className="job-modal-header">
           <div className="job-modal-title-section">
             <h2 className="job-modal-title">{job.title}</h2>
             <div className="job-modal-badges">
-              <span className={`job-badge priority priority-${job.priority}`}>
-                {job.priority} priority
-              </span>
-              <span className={`job-badge status status-${job.status}`}>
-                {job.status?.replace("-", " ")}
-              </span>
+              <span className={`job-badge priority priority-${job.priority}`}>{job.priority} priority</span>
+              <span className={`job-badge status status-${job.status}`}>{job.status?.replace("-", " ")}</span>
             </div>
             <p className="job-modal-request-id">Request #{job.id}</p>
           </div>
-          <button className="job-modal-close" onClick={onClose}>
+          <button className="job-modal-close" onClick={onClose} type="button">
             <X size={24} />
           </button>
         </div>
 
-        {/* Modal Body */}
         <div className="job-modal-body">
-          {/* Customer Section */}
           <div className="job-modal-section">
             <h3 className="job-modal-section-title">
-              <span className="section-icon">👤</span> Customer
+              <UserRound size={18} className="section-icon" /> Customer
             </h3>
             <div className="job-modal-customer">
               <div>
@@ -57,10 +61,9 @@ const JobDetailsModal = ({ isOpen, onClose, job, onStartWork, onSendUpdate }) =>
             </div>
           </div>
 
-          {/* Vehicle Section */}
           <div className="job-modal-section">
             <h3 className="job-modal-section-title">
-              <span className="section-icon">🚗</span> Vehicle
+              <Car size={18} className="section-icon" /> Vehicle
             </h3>
             <div className="job-modal-grid">
               <div>
@@ -78,20 +81,19 @@ const JobDetailsModal = ({ isOpen, onClose, job, onStartWork, onSendUpdate }) =>
             </div>
           </div>
 
-          {/* Service Description */}
           <div className="job-modal-section">
             <h3 className="job-modal-section-title">
-              <span className="section-icon">🔧</span> Service Description
+              <Wrench size={18} className="section-icon" /> Service Description
             </h3>
             <p className="job-modal-description">
-              {job.description || "Regular maintenance - oil change with synthetic 5W-30 and new filter. Customer also mentioned a slight engine noise."}
+              {job.description ||
+                "Regular maintenance - oil change with synthetic 5W-30 and new filter. Customer also mentioned a slight engine noise."}
             </p>
           </div>
 
-          {/* Timeline */}
           <div className="job-modal-section">
             <h3 className="job-modal-section-title">
-              <span className="section-icon">📅</span> Timeline
+              <Calendar size={18} className="section-icon" /> Timeline
             </h3>
             <div className="job-modal-grid">
               <div>
@@ -109,10 +111,9 @@ const JobDetailsModal = ({ isOpen, onClose, job, onStartWork, onSendUpdate }) =>
             </div>
           </div>
 
-          {/* Parts Required */}
           <div className="job-modal-section">
             <h3 className="job-modal-section-title">
-              <span className="section-icon">⚙️</span> Parts Required
+              <Cog size={18} className="section-icon" /> Parts Required
             </h3>
             <ul className="job-modal-parts-list">
               {(job.parts || ["Oil Filter", "Synthetic Oil 5W-30 (5 quarts)"]).map((part, idx) => (
@@ -124,22 +125,18 @@ const JobDetailsModal = ({ isOpen, onClose, job, onStartWork, onSendUpdate }) =>
             </ul>
           </div>
 
-          {/* Important Notes */}
           {job.notes && (
             <div className="job-modal-section notes-section">
               <h3 className="job-modal-section-title">
-                <span className="section-icon">⚠️</span> Important Notes
+                <AlertTriangle size={18} className="section-icon" /> Important Notes
               </h3>
-              <div className="job-modal-notes">
-                {job.notes}
-              </div>
+              <div className="job-modal-notes">{job.notes}</div>
             </div>
           )}
 
-          {/* Work Updates */}
           <div className="job-modal-section">
             <h3 className="job-modal-section-title">
-              <span className="section-icon">📝</span> Work Updates
+              <FileText size={18} className="section-icon" /> Work Updates
             </h3>
             <p className="job-modal-update-info">Updates are sent to admin and customer</p>
             <div className="job-modal-update-input">
@@ -148,11 +145,7 @@ const JobDetailsModal = ({ isOpen, onClose, job, onStartWork, onSendUpdate }) =>
                 value={updateMessage}
                 onChange={(e) => setUpdateMessage(e.target.value)}
               />
-              <button 
-                className="job-modal-send-btn"
-                onClick={handleSendUpdate}
-                disabled={!updateMessage.trim()}
-              >
+              <button className="job-modal-send-btn" onClick={handleSendUpdate} disabled={!updateMessage.trim()} type="button">
                 <Send size={18} />
                 Send Update
               </button>
@@ -160,15 +153,11 @@ const JobDetailsModal = ({ isOpen, onClose, job, onStartWork, onSendUpdate }) =>
           </div>
         </div>
 
-        {/* Footer Actions */}
         <div className="job-modal-footer">
-          <button className="job-modal-btn secondary" onClick={onClose}>
+          <button className="job-modal-btn secondary" onClick={onClose} type="button">
             Close
           </button>
-          <button 
-            className="job-modal-btn primary"
-            onClick={() => onStartWork?.(job.id)}
-          >
+          <button className="job-modal-btn primary" onClick={() => onStartWork?.(job.id)} type="button">
             Start Work
           </button>
         </div>
