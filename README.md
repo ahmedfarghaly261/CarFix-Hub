@@ -88,8 +88,8 @@ With real-time notifications, comprehensive dashboards, and a user-friendly inte
 - **Environment**: Dotenv
 
 ### **Development Tools**
-- **Build**: Vite, Nodemon
-- **Package Manager**: npm
+- **Build**: Vite, Turbo
+- **Package Manager**: pnpm
 - **Version Control**: Git
 
 ---
@@ -98,7 +98,7 @@ With real-time notifications, comprehensive dashboards, and a user-friendly inte
 
 ### **Prerequisites**
 - Node.js (v20.x or higher)
-- npm or yarn
+- pnpm
 - MongoDB (local or Atlas)
 - Git
 
@@ -108,44 +108,40 @@ git clone <repository-url>
 cd CarFix
 ```
 
-### **2. Backend Setup**
+### **2. Install Dependencies**
 ```bash
-cd backend
+pnpm install
+```
 
-# Install dependencies
-npm install
+### **3. Backend Environment**
+Create `apps/api/.env`:
 
-# Create .env file
-echo > .env
-
-# Add environment variables
+```bash
 MONGODB_URI=mongodb://localhost:27017/carfix
 JWT_SECRET=your_jwt_secret_key_here
 PORT=5000
-
-# Start the server
-npm start
+FRONTEND_URL=http://localhost:5173
 ```
 
-The backend will run on `http://localhost:5000`
+The backend will run on `http://localhost:5000`.
 
-### **3. Frontend Setup**
+### **4. Frontend Environment**
+Create or update `apps/web/.env` if you need to override the default API URL:
+
 ```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Create .env file (if needed)
-# Frontend will connect to backend at http://localhost:5000/api
-
-# Start development server
-npm run dev
+VITE_API_URL=http://localhost:5000/api
 ```
 
-The frontend will be available at `http://localhost:5173`
+### **5. Start Development**
+Run both apps from the repository root:
 
-### **4. Access the Application**
+```bash
+pnpm dev
+```
+
+Turbo runs `apps/api` and `apps/web` together. The frontend will be available at `http://localhost:5173`.
+
+### **6. Access the Application**
 - **User Dashboard**: http://localhost:5173/user/home
 - **Mechanic Dashboard**: http://localhost:5173/mechanics/dashboard
 - **Admin Dashboard**: http://localhost:5173/admin/dashboard
@@ -441,7 +437,8 @@ DELETE /admin/services/{serviceId}
 
 ```
 CarFix/
-├── 📁 backend/
+├── 📁 apps/
+│   ├── 📁 api/
 │   ├── 📄 server.js                 # Express app entry point
 │   ├── 📄 package.json              # Backend dependencies
 │   ├── 📁 middleware/
@@ -468,7 +465,7 @@ CarFix/
 │   └── 📁 utils/
 │       └── 📄 validators.js        # Input validation
 │
-├── 📁 frontend/
+│   └── 📁 web/
 │   ├── 📄 index.html               # HTML entry point
 │   ├── 📄 package.json             # Frontend dependencies
 │   ├── 📄 vite.config.js           # Vite configuration
@@ -595,9 +592,9 @@ CarFix/
 
 ## 📚 Documentation
 
-- [API Documentation](./backend/API_DOCUMENTATION.md) - Detailed endpoint reference
-- [Integration Guide](./backend/INTEGRATION_GUIDE.md) - Integration details
-- [Implementation Status](./backend/IMPLEMENTATION_COMPLETE.md) - Current features
+- [API Documentation](./apps/api/API_DOCUMENTATION.md) - Detailed endpoint reference
+- [Integration Guide](./apps/api/INTEGRATION_GUIDE.md) - Integration details
+- [Implementation Status](./apps/api/IMPLEMENTATION_COMPLETE.md) - Current features
 - [Profile Features](./PROFILE_FEATURES_GUIDE.md) - User profile guide
 - [Mechanics Theme](./MECHANICS_THEME_IMPLEMENTATION.md) - Theme implementation details
 

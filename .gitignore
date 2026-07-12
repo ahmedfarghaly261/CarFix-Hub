@@ -53,14 +53,18 @@ debug.log
 *.temp
 
 # Backend specific
-backend/uploads/
-backend/logs/
+apps/api/uploads/
+apps/api/logs/
 
 # Frontend specific
-frontend/.cache/
-frontend/dist/
-frontend/build/
-frontend/node_modules/
+apps/web/.cache/
+apps/web/dist/
+apps/web/build/
+apps/web/node_modules/
+
+# Monorepo tooling
+.turbo/
+.pnpm-store/
 
 # Local SSL certificates
 *.pem
