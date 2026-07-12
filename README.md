@@ -670,7 +670,7 @@ This project is licensed under the ISC License - see the LICENSE file for detail
 
 For support, questions, or feedback:
 
-- 📧 **Email**: support@carfix.com
+- 📧 **Email**: ahmedfarghaly201055@gmail.com
 - 🐛 **Issue Tracker**: GitHub Issues
 - 💬 **Discussion Forum**: Community discussions
 - 📱 **Phone**: Contact support team
