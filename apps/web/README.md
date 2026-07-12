@@ -5,7 +5,7 @@ Local dev setup
 1. Copy the environment file if you need to customize it:
 
 ```
-cd frontend
+cd apps/web
 cp .env .env.local
 ```
 
@@ -14,8 +14,8 @@ cp .env .env.local
 3. Install and start the frontend (Vite):
 
 ```
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Notes: The backend should have `FRONTEND_URL` set to `http://localhost:5173` (Vite default) so CORS and cookies work during development.
