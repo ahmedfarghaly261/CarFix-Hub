@@ -243,16 +243,17 @@ export class AdminService {
     if (amount != null) {
       const parsedAmount = Number(amount);
       if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
-        throw new ApiError(400, 'Valid invoice amount is required');
+        throw new ApiError(400, 'Valid administrative expenses amount is required');
       }
-      job.billingAmount = parsedAmount;
+      job.administrativeExpenses = parsedAmount;
     }
 
+    job.billingAmount = job.totalCost + (job.administrativeExpenses || 0);
     job.invoiceSent = true;
     job.invoiceSentAt = new Date();
     await job.save();
 
-    const invoiceAmount = job.billingAmount ?? job.totalCost;
+    const invoiceAmount = job.billingAmount;
 
     try {
       await Notification.create({
