@@ -35,7 +35,9 @@ export class MechanicService {
 
     if (!job) throw new ApiError(404, 'Job not found');
 
-    if (job.workshopId?.toString() !== user.workshopId?.toString()) {
+    const isAssignedToMechanic = job.assignedTo?.toString() === user._id.toString();
+    const isInSameWorkshop = job.workshopId?.toString() === user.workshopId?.toString();
+    if (!isAssignedToMechanic && !isInSameWorkshop) {
       throw new ApiError(403, 'Not authorized');
     }
 
@@ -190,30 +192,45 @@ export class MechanicService {
     if (!isAssignedToMechanic && !isInSameWorkshop) throw new ApiError(403, 'Not authorized');
 
     if (!job.workshopId) job.workshopId = user.workshopId;
-    if (data.reportDetails) job.reportDetails = data.reportDetails;
 
-    const hasRepairItem = typeof data.repairItem === 'string' && data.repairItem.trim() !== '';
-    const hasRepairAmount = data.repairAmount != null && data.repairAmount !== '';
+    const reportDetails = typeof data.reportDetails === 'string' ? data.reportDetails.trim() : '';
+    if (!reportDetails) throw new ApiError(400, 'Repair report is required');
 
-    if (hasRepairItem || hasRepairAmount) {
-      const parsedAmount = Number(data.repairAmount);
-      if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
-        throw new ApiError(400, 'Valid repair amount is required');
+    if (!Array.isArray(data.lineItems) || data.lineItems.length === 0) {
+      throw new ApiError(400, 'At least one repair line item is required');
+    }
+
+    const lineItems = data.lineItems.map((item: any, index: number) => {
+      const name = typeof item?.name === 'string' ? item.name.trim() : '';
+      const quantity = Number(item?.quantity);
+      const cost = Number(item?.cost);
+
+      if (!name) throw new ApiError(400, `Item name is required for line item ${index + 1}`);
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        throw new ApiError(400, `Valid quantity is required for line item ${index + 1}`);
+      }
+      if (!Number.isFinite(cost) || cost < 0) {
+        throw new ApiError(400, `Valid cost is required for line item ${index + 1}`);
       }
 
-      job.iterations?.push({
-        description: hasRepairItem ? data.repairItem.trim() : 'Repair work',
-        mechanicNotes: data.reportDetails || data.notes || '',
-        status: 'completed',
-        cost: { total: parsedAmount },
-        mechanicId: user._id,
-        completedAt: new Date()
-      } as any);
-    }
+      return { name, quantity, cost, total: quantity * cost };
+    });
+
+    job.reportDetails = reportDetails;
+    job.iterations = lineItems.map((item: any) => ({
+      description: item.name,
+      mechanicNotes: reportDetails,
+      status: 'completed',
+      cost: {
+        parts: [{ name: item.name, price: item.cost, quantity: item.quantity }],
+        total: item.total
+      },
+      mechanicId: user._id,
+      completedAt: new Date()
+    } as any));
 
     job.status = 'completed';
     job.actualCompletionDate = new Date();
-    if (data.cost) job.totalCost = data.cost;
     await job.save();
 
     await User.findByIdAndUpdate(user._id, { $inc: { completedJobs: 1 } });
