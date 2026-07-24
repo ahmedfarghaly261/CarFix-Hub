@@ -117,6 +117,8 @@ export interface WorkReport {
   hoursWorked?: number;
   partsUsed?: { name: string; cost: number; quantity?: number }[];
   totalCost?: number;
+  administrativeExpenses?: number;
+  billingAmount?: number;
   createdAt?: string;
   [key: string]: any;
 }
