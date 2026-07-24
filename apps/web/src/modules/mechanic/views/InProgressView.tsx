@@ -1,22 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useMechanicsTheme } from '@/context/MechanicsThemeContext';
 import { useToast } from '@/components/ui/useToast';
 import { getMechanicJobs } from '@/modules/mechanic/services/mechanic.service';
 import { Clock, Car, CheckCircle, AlertCircle, TrendingUp, Edit } from 'lucide-react';
-import WorkReportModal from '@/modules/mechanic/components/WorkReportModal';
 
 export default function MechanicsInProgressPage() {
   const { user } = useAuth();
   const { isDarkMode } = useMechanicsTheme();
   const toast = useToast();
+  const navigate = useNavigate();
   const [inProgressJobs, setInProgressJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Modal State
-  const [selectedJob, setSelectedJob] = useState(null);
-  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
 
   const fetchInProgressJobs = useCallback(async () => {
     try {
@@ -55,11 +52,6 @@ export default function MechanicsInProgressPage() {
       fetchInProgressJobs();
     }
   }, [fetchInProgressJobs, user]);
-
-  const handleOpenCompleteModal = (job) => {
-    setSelectedJob(job);
-    setIsCompleteModalOpen(true);
-  };
 
   return (
     <div className={`min-h-screen pt-8 px-4 sm:px-8 max-w-7xl mx-auto transition-colors duration-300 ${isDarkMode ? 'bg-[#0B1120]' : 'bg-gray-50'}`}>
@@ -154,29 +146,15 @@ export default function MechanicsInProgressPage() {
               
               <div className={`pt-4 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-100'}`}>
                 <button 
-                  onClick={() => handleOpenCompleteModal(job)}
+                  onClick={() => navigate(`/mechanics/jobs/${job.id}`)}
                   className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-500 hover:to-indigo-500 transition shadow-lg shadow-blue-500/20 flex justify-center items-center gap-2 text-sm">
-                  <Edit className="w-4 h-4" /> Update Job
+                  <Edit className="w-4 h-4" /> Open Repair Details
                 </button>
               </div>
             </div>
           ))}
         </div>
       )}
-
-      {/* Work Report Modal */}
-      <WorkReportModal 
-        isOpen={isCompleteModalOpen}
-        job={selectedJob}
-        onClose={() => {
-          setIsCompleteModalOpen(false);
-          setSelectedJob(null);
-        }}
-        onSuccess={() => {
-          toast.success('Job report updated.');
-          fetchInProgressJobs();
-        }}
-      />
     </div>
   );
 }

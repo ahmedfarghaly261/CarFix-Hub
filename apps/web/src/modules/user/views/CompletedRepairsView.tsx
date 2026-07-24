@@ -8,6 +8,7 @@ import {
   DollarSign, ClipboardList, ExternalLink, Search, SlidersHorizontal
 } from 'lucide-react';
 import InvoiceModal from '@/components/common/InvoiceModal';
+import ReportModal from '@/components/common/ReportModal';
 
 export default function CompletedRepairs() {
   const { user } = useAuth();
@@ -16,6 +17,7 @@ export default function CompletedRepairs() {
   const [repairs, setRepairs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [invoiceRepair, setInvoiceRepair] = useState(null);
+  const [reportRepair, setReportRepair] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
 
@@ -255,6 +257,13 @@ export default function CompletedRepairs() {
 
                 {/* Row 4: Actions */}
                 <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    onClick={() => setReportRepair(repair)}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${isDarkMode ? 'bg-blue-900/40 text-blue-300 hover:bg-blue-900/60 border border-blue-800' : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'}`}
+                  >
+                    <ClipboardList size={16} />
+                    View Report
+                  </button>
                   {repair.invoiceSent && (
                     <button
                       onClick={() => setInvoiceRepair(repair)}
@@ -282,6 +291,13 @@ export default function CompletedRepairs() {
         <InvoiceModal
           repair={invoiceRepair}
           onClose={() => setInvoiceRepair(null)}
+          isDarkMode={isDarkMode}
+        />
+      )}
+      {reportRepair && (
+        <ReportModal
+          repair={reportRepair}
+          onClose={() => setReportRepair(null)}
           isDarkMode={isDarkMode}
         />
       )}
