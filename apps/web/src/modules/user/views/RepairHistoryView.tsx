@@ -8,6 +8,7 @@ import {
   ExternalLink, ChevronRight, DollarSign, Search
 } from 'lucide-react';
 import InvoiceModal from '@/components/common/InvoiceModal';
+import ReportModal from '@/components/common/ReportModal';
 
 const statusConfig = {
   completed: { icon: CheckCircle, label: 'Completed', lightBg: 'bg-green-50', lightText: 'text-green-700', lightBorder: 'border-green-200', darkBg: 'bg-green-900/30', darkText: 'text-green-300', darkBorder: 'border-green-800', accent: 'from-green-500 to-emerald-500' },
@@ -27,6 +28,7 @@ export default function RepairHistory() {
   const [repairs, setRepairs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [invoiceRepair, setInvoiceRepair] = useState(null);
+  const [reportRepair, setReportRepair] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -295,6 +297,16 @@ export default function RepairHistory() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  setReportRepair(repair);
+                                }}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border ${isDarkMode ? 'bg-blue-900/30 text-blue-300 border-blue-800 hover:bg-blue-900/50' : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'}`}
+                              >
+                                <FileText size={13} />
+                                Report
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   navigate(`/repairs/${repair._id}`);
                                 }}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
@@ -331,6 +343,13 @@ export default function RepairHistory() {
         <InvoiceModal
           repair={invoiceRepair}
           onClose={() => setInvoiceRepair(null)}
+          isDarkMode={isDarkMode}
+        />
+      )}
+      {reportRepair && (
+        <ReportModal
+          repair={reportRepair}
+          onClose={() => setReportRepair(null)}
           isDarkMode={isDarkMode}
         />
       )}
