@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useMechanicsTheme } from '@/context/MechanicsThemeContext';
 import { useToast } from '@/components/ui/useToast';
@@ -10,6 +11,7 @@ export default function MechanicsJobsPage() {
   const { user } = useAuth();
   const { isDarkMode } = useMechanicsTheme();
   const toast = useToast();
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -312,6 +314,12 @@ export default function MechanicsJobsPage() {
           {jobs.map((job) => (
             <div 
               key={job.id} 
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate(`/mechanics/jobs/${job.id}`)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') navigate(`/mechanics/jobs/${job.id}`);
+              }}
               className={`rounded-2xl p-6 transition-all duration-300 hover:shadow-lg border flex flex-col justify-between ${
                 isDarkMode 
                   ? 'bg-[#1A2639] border-gray-800 hover:border-blue-500/30' 
@@ -367,37 +375,17 @@ export default function MechanicsJobsPage() {
 
               <div className={`flex gap-3 pt-4 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-100'}`}>
                 <button 
-                  onClick={() => handleViewDetails(job)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    navigate(`/mechanics/jobs/${job.id}`);
+                  }}
                   className={`flex-1 px-4 py-2.5 rounded-xl font-semibold transition flex justify-center items-center gap-2 text-sm ${
                     isDarkMode 
                       ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' 
                       : 'bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
                   }`}>
-                  <Search className="w-4 h-4" /> View Details
+                  <Search className="w-4 h-4" /> Repair Request Details
                 </button>
-                
-                {job.status === 'in-progress' && (
-                  <button
-                    onClick={() => handleAddReport(job)}
-                    className={`flex-1 px-4 py-2.5 rounded-xl font-semibold transition flex justify-center items-center gap-2 text-sm ${
-                      isDarkMode
-                        ? 'bg-blue-500/10 text-blue-300 hover:bg-blue-500/15 border border-blue-500/20'
-                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
-                    }`}>
-                    <FileText className="w-4 h-4" /> Add Report
-                  </button>
-                )}
-
-                {(job.status === 'in-progress' || job.status === 'assigned') && (
-                  <button 
-                    onClick={() => {
-                      setSelectedJob(job);
-                      handleOpenCompleteModal(job);
-                    }}
-                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-500 hover:to-indigo-500 transition shadow-lg shadow-blue-500/20 flex justify-center items-center gap-2 text-sm">
-                    <CheckCircle className="w-4 h-4" /> Complete
-                  </button>
-                )}
               </div>
             </div>
           ))}
