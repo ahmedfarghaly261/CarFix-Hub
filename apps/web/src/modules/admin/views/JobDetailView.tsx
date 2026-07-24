@@ -47,7 +47,7 @@ export default function JobDetailPage() {
       const res = await getJobById(jobId);
       setJob(res.data);
       setSalary(res.data.mechanicSalary || '');
-      setInvoiceAmount(res.data.billingAmount ?? '');
+      setInvoiceAmount(res.data.administrativeExpenses ?? '');
     } catch (err) {
       console.error('Failed to load job', err);
     } finally {
@@ -88,14 +88,14 @@ export default function JobDetailPage() {
     const hasAmount = invoiceAmount !== '' && invoiceAmount != null;
     const parsedAmount = hasAmount ? Number(invoiceAmount) : null;
     if (hasAmount && (!Number.isFinite(parsedAmount) || parsedAmount < 0)) {
-      alert('Please enter a valid invoice amount');
+      alert('Please enter a valid administrative expenses amount');
       return;
     }
     setSendingInvoice(true);
     try {
       const res = await sendInvoice(job._id, parsedAmount);
       setJob(res.data.job);
-      setInvoiceAmount(res.data.job.billingAmount ?? '');
+      setInvoiceAmount(res.data.job.administrativeExpenses ?? '');
       alert('Invoice sent to customer successfully!');
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to send invoice');
@@ -466,7 +466,7 @@ export default function JobDetailPage() {
 
                 {/* Invoice Amount */}
                 <div>
-                  <p className={labelClass}>Invoice Amount</p>
+                  <p className={labelClass}>Administrative expenses</p>
                   <div className="relative mt-2">
                     <DollarSign size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
                     <input
@@ -475,30 +475,12 @@ export default function JobDetailPage() {
                       value={invoiceAmount}
                       onChange={(e) => setInvoiceAmount(e.target.value)}
                       disabled={job.invoiceSent}
-                      placeholder={String(job.totalCost || 0)}
+                      placeholder="0"
                       className={`w-full pl-9 pr-3 py-2 rounded-lg border text-sm ${isDarkMode ? 'bg-[#27384a] border-gray-700 text-gray-200 placeholder-gray-500' : 'bg-white border-gray-300 text-gray-700 placeholder-gray-400'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                     />
                   </div>
-                  {reportedRepairs.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setInvoiceAmount(String(reportedTotal))}
-                      disabled={job.invoiceSent}
-                      className={`mt-2 text-xs font-medium px-3 py-1 rounded transition-colors ${
-                        job.invoiceSent
-                          ? isDarkMode
-                            ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : isDarkMode
-                            ? 'bg-[#1f2f3f] text-blue-300 hover:bg-[#2b3c50]'
-                            : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                      }`}
-                    >
-                      Use reported total (${formatMoney(reportedTotal)})
-                    </button>
-                  )}
                   <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Leave empty to use the calculated total.
+                    Added to the mechanic total. Customer total: ${formatMoney((job.totalCost || 0) + (Number(invoiceAmount) || 0))}
                   </p>
                 </div>
 

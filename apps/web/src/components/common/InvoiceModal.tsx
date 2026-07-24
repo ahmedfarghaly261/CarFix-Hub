@@ -73,7 +73,9 @@ export default function InvoiceModal({ repair, onClose, isDarkMode }) {
 
   const laborCost = repair.iterations?.reduce((sum, iter) => sum + (iter.cost?.labor || 0), 0) || 0;
   const partsCost = parts.reduce((sum, p) => sum + (p.price * p.qty), 0);
-  const totalCost = repair.totalCost || (partsCost + laborCost);
+  const mechanicTotal = Number(repair.totalCost ?? (partsCost + laborCost));
+  const administrativeExpenses = Number(repair.administrativeExpenses || 0);
+  const invoiceTotal = Number(repair.billingAmount ?? (mechanicTotal + administrativeExpenses));
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -190,8 +192,8 @@ export default function InvoiceModal({ repair, onClose, isDarkMode }) {
                   <tr>
                     <td style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6', fontSize: '13px', color: '#374151' }}>Repair Service - {repair.title}</td>
                     <td style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6', fontSize: '13px', color: '#374151', textAlign: 'center' }}>1</td>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6', fontSize: '13px', color: '#374151', textAlign: 'right' }}>${totalCost.toFixed(2)}</td>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6', fontSize: '13px', color: '#374151', textAlign: 'right' }}>${totalCost.toFixed(2)}</td>
+                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6', fontSize: '13px', color: '#374151', textAlign: 'right' }}>${mechanicTotal.toFixed(2)}</td>
+                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6', fontSize: '13px', color: '#374151', textAlign: 'right' }}>${mechanicTotal.toFixed(2)}</td>
                   </tr>
                 )}
                 {laborCost > 0 && (
@@ -200,6 +202,14 @@ export default function InvoiceModal({ repair, onClose, isDarkMode }) {
                     <td style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6', fontSize: '13px', color: '#374151', textAlign: 'center' }}>-</td>
                     <td style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6', fontSize: '13px', color: '#374151', textAlign: 'right' }}>${laborCost.toFixed(2)}</td>
                     <td style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6', fontSize: '13px', color: '#374151', textAlign: 'right' }}>${laborCost.toFixed(2)}</td>
+                  </tr>
+                )}
+                {administrativeExpenses > 0 && (
+                  <tr>
+                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6', fontSize: '13px', color: '#374151' }}>Administrative expenses</td>
+                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6', fontSize: '13px', color: '#374151', textAlign: 'center' }}>1</td>
+                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6', fontSize: '13px', color: '#374151', textAlign: 'right' }}>${administrativeExpenses.toFixed(2)}</td>
+                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6', fontSize: '13px', color: '#374151', textAlign: 'right' }}>${administrativeExpenses.toFixed(2)}</td>
                   </tr>
                 )}
               </tbody>
@@ -224,7 +234,7 @@ export default function InvoiceModal({ repair, onClose, isDarkMode }) {
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', marginTop: '4px', borderTop: '2px solid #2563eb', fontSize: '18px', fontWeight: 700, color: '#111827' }}>
                   <span>Total</span>
-                  <span>${totalCost.toFixed(2)}</span>
+                  <span>${invoiceTotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>
