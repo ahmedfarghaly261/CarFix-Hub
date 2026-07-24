@@ -32,6 +32,7 @@ import AdminJobDetailView from '@/modules/admin/views/JobDetailView'
 // Mechanic views
 import MechanicDashboardView from '@/modules/mechanic/views/DashboardView'
 import MechanicJobsView from '@/modules/mechanic/views/JobsView'
+import MechanicRepairRequestDetailsView from '@/modules/mechanic/views/RepairRequestDetailsView'
 import MechanicCompletedView from '@/modules/mechanic/views/CompletedView'
 import MechanicInProgressView from '@/modules/mechanic/views/InProgressView'
 import MechanicReviewsView from '@/modules/mechanic/views/ReviewsView'
@@ -109,6 +110,7 @@ const RootRouter: React.FC = () => {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<MechanicDashboardView />} />
             <Route path="jobs" element={<MechanicJobsView />} />
+            <Route path="jobs/:jobId" element={<MechanicRepairRequestDetailsView />} />
             <Route path="completed" element={<MechanicCompletedView />} />
             <Route path="in-progress" element={<MechanicInProgressView />} />
             <Route path="reviews" element={<MechanicReviewsView />} />
