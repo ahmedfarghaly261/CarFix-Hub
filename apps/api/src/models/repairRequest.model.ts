@@ -68,6 +68,7 @@ export interface IRepairRequest extends Document {
   priority: 'low' | 'medium' | 'high';
   iterations?: IRepairIteration[];
   totalCost: number;
+  administrativeExpenses: number;
   billingAmount?: number | null;
   estimatedCompletionDate?: Date;
   actualCompletionDate?: Date;
@@ -125,6 +126,10 @@ const repairRequestSchema = new Schema<IRepairRequest>(
     },
     iterations: [repairIterationSchema],
     totalCost: {
+      type: Number,
+      default: 0,
+    },
+    administrativeExpenses: {
       type: Number,
       default: 0,
     },
