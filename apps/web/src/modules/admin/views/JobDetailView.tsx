@@ -148,7 +148,9 @@ export default function JobDetailPage() {
     .filter((iteration) => Number.isFinite(iteration?.cost?.total))
     .map((iteration, index) => ({
       id: iteration._id || `iteration-${index}`,
-      description: iteration.description || `Repair item ${index + 1}`,
+      description: iteration.cost?.parts?.[0]?.name || iteration.description || `Repair item ${index + 1}`,
+      quantity: iteration.cost?.parts?.[0]?.quantity || 1,
+      unitCost: iteration.cost?.parts?.[0]?.price ?? iteration.cost.total,
       total: iteration.cost.total
     }));
   const reportedTotal = reportedRepairs.reduce((sum, item) => sum + item.total, 0);
@@ -260,14 +262,19 @@ export default function JobDetailPage() {
                 {reportedRepairs.length > 0 && (
                   <div className="mt-4">
                     <p className={labelClass}>Reported Repairs</p>
-                    <div className={`mt-2 rounded-lg border p-3 space-y-2 ${isDarkMode ? 'border-gray-700 bg-[#27384a]' : 'border-gray-200 bg-gray-50'}`}>
+                    <div className={`mt-2 overflow-hidden rounded-lg border ${isDarkMode ? 'border-gray-700 bg-[#27384a]' : 'border-gray-200 bg-gray-50'}`}>
+                      <div className={`grid grid-cols-[1fr_70px_100px_100px] gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'bg-[#1f2f3f] text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                        <span>Item</span><span className="text-center">Qty</span><span className="text-right">Cost</span><span className="text-right">Total</span>
+                      </div>
                       {reportedRepairs.map((item) => (
-                        <div key={item.id} className={`flex items-center justify-between text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                          <span className="pr-4">{item.description}</span>
-                          <span className={`font-semibold ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>${formatMoney(item.total)}</span>
+                        <div key={item.id} className={`grid grid-cols-[1fr_70px_100px_100px] gap-2 border-t px-3 py-3 text-sm ${isDarkMode ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-700'}`}>
+                          <span>{item.description}</span>
+                          <span className="text-center">{item.quantity}</span>
+                          <span className="text-right">${formatMoney(item.unitCost)}</span>
+                          <span className={`text-right font-semibold ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>${formatMoney(item.total)}</span>
                         </div>
                       ))}
-                      <div className={`pt-2 border-t flex items-center justify-between text-sm font-semibold ${isDarkMode ? 'border-gray-700 text-gray-100' : 'border-gray-200 text-gray-800'}`}>
+                      <div className={`flex items-center justify-between border-t px-3 py-3 text-sm font-semibold ${isDarkMode ? 'border-gray-700 text-gray-100' : 'border-gray-200 text-gray-800'}`}>
                         <span>Reported Total</span>
                         <span className={isDarkMode ? 'text-green-300' : 'text-green-600'}>${formatMoney(reportedTotal)}</span>
                       </div>
